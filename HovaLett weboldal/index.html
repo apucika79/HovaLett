@@ -1,0 +1,152 @@
+ <!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HovaLett – Elveszett és talált tárgyak</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+
+    <h1>HovaLett</h1>
+  <p>Jelentsd be, ha találtál vagy elvesztettél valamit!</p>
+
+  <div class="button-row">
+    <button id="foundBtn">Találtam valamit</button>
+    <button id="lostBtn">Elvesztettem valamit</button>
+  </div>
+
+  <div id="topMenu">
+  <button class="menu-btn">Feladásaim</button>
+  <button class="menu-btn">Üzeneteim</button>
+  <button id="menuLoginBtn" class="menu-btn">Bejelentkezés</button>
+  <button id="logoutBtn" class="menu-btn hidden">Kijelentkezés</button>
+  <span id="loggedUser" class="logged-user hidden">Bejelentkezve: Felhasználó</span>
+</div>
+
+
+  <div id="valasztoBox" class="hidden">
+    <p>Hol találtad vagy hol vesztetted el?</p>
+    <div class="valaszto-buttons">
+      <button id="utcaBtn">📍 Utcán/Épületben</button>
+      <button id="jarmuBtn">🚍 Járművön</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div id="leftPanel">
+      <h2>Szűrés</h2>
+      <div class="filter-group">
+        <button id="filterTalaltam" class="filter-btn green active">Találtam</button>
+        <button id="filterKeresem" class="filter-btn red active">Keresem</button>
+      </div>
+      <div class="filter-categories">
+        <button class="filter-cat active" data-cat="Telefon -és Kiegészítők">Telefon -és Kiegészítők</button>
+        <button class="filter-cat active" data-cat="Pénz, Pénztárca">Pénz, Pénztárca</button>
+        <button class="filter-cat active" data-cat="Okmányok">Okmányok</button>
+        <button class="filter-cat active" data-cat="Ruházat, táska">Ruházat, táska</button>
+        <button class="filter-cat active" data-cat="Kulcs">Kulcs</button>
+        <button class="filter-cat active" data-cat="Háziállat">Háziállat</button>
+        <button class="filter-cat active" data-cat="Ékszer">Ékszer</button>
+        <button class="filter-cat active" data-cat="Egyéb">Egyéb</button>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="rightPanel">
+      <h2>Legfrissebb jelentések</h2>
+      <div id="reportItems" class="report-list">
+        <!-- Dinamikusan töltjük majd -->
+      </div>
+    </div>
+  </div>
+
+  <div id="bejelentesBox" class="hidden">
+    <div id="markerForm" class="hidden">
+  <input type="file" id="photoInput" accept="image/*" /><br><br>
+  <textarea id="descriptionInput" rows="4" cols="40" placeholder="Leírás..."></textarea><br><br>
+  <input type="text" id="contactInput" placeholder="Elérhetőség (opcionális)" /><br><br>
+  <div id="járatBox" class="hidden">
+    <input type="text" id="routeInput" placeholder="Járatszám (pl. 7-es busz)" /><br><br>
+  </div>
+  <button id="saveBtn">Mentés</button>
+</div>
+
+    <button class="back-btn">Főoldal</button>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <p>Ehhez a művelethez regisztráció szükséges. Jelentkezz be vagy regisztrálj.</p>
+      <div class="modal-buttons">
+        <button id="loginBtn">Belépés</button>
+        <button id="registerBtn">Regisztráció</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="valasztoModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Hol találtad vagy hol vesztetted el?</h3>
+    <div class="valaszto-buttons">
+      <button id="modalUtcaBtn">📍 Utcán/Épületben</button>
+      <button id="modalJarmuBtn">🚍 Járművön</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <div id="helyModal" class="modal hidden">
+  <div class="modal-content">
+    <p>Kérlek, most tűzd le a térképen a pontos helyet, ahol találtad vagy elhagytad.<br>
+    Ha nem vagy benne biztos, akkor azt a helyet, ahol szerinted elhagytad.</p>
+    <button id="helyModalOkBtn">OK</button>
+  </div>
+</div>
+
+<div id="datumModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Mikor találtad vagy mikor vesztetted el?</h3>
+    <label for="selectYear">Év:</label>
+    <select id="selectYear"></select><br><br>
+
+    <label for="selectMonth">Hónap:</label>
+    <select id="selectMonth"></select><br><br>
+
+    <label for="selectDay">Nap:</label>
+    <select id="selectDay"></select><br><br>
+
+    <p>Nap: <strong id="dayOfWeek"></strong></p>
+
+    <button id="datumModalOkBtn">OK</button>
+  </div>
+</div>
+
+<div id="kategoriavalasztoModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Milyen típusú tárgyról van szó?</h3>
+    <div class="kat-grid">
+  <button class="kat-valaszto-btn">Telefon</button>
+  <button class="kat-valaszto-btn">Pénztárca</button>
+  <button class="kat-valaszto-btn">Okmány</button>
+  <button class="kat-valaszto-btn">Kulcs</button>
+  <button class="kat-valaszto-btn">Ruházat</button>
+  <button class="kat-valaszto-btn">Háziállat</button>
+  <button class="kat-valaszto-btn">Ékszer</button>
+  <button class="kat-valaszto-btn">Egyéb</button>
+</div>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+
+
+</body>
+</html>
