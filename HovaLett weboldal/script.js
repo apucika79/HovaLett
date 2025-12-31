@@ -27,6 +27,10 @@ const redBusIcon = L.icon({
   popupAnchor: [0, -35]
 });
 
+const supabaseUrl = "https://eishxohixndoiltazdzu.supabase.co";
+const supabaseAnonKey = "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT";
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
 const map = L.map('map').setView([47.4979, 19.0402], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap közreműködők',
@@ -35,6 +39,78 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const activeTypes = new Set(['talaltam', 'keresem']);
 const activeCategories = new Set(['Telefon', 'Kulcs', 'Pénztárca', 'Hátizsák', 'Szemüveg', 'Kisállat', 'Kabát', 'Egyéb']);
 const allReports = [];
+let lastClickedCoords = null;
+const mapMarkers = [];
+
+function createReportHtml({ type, category, description, contact, route, created_at }) {
+  const alapTipus = type?.includes("talaltam") ? "talaltam" : "keresem";
+  const tipusSzoveg = alapTipus === "talaltam"
+    ? "<span style='color:green;font-weight:bold'>Találtam</span>"
+    : "<span style='color:red;font-weight:bold'>Keresem</span>";
+
+  const formattedDate = created_at
+    ? new Date(created_at).toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" })
+    : "";
+
+  return `
+    <div class="report-card">
+      ${tipusSzoveg} – ${category || "Ismeretlen"}<br>
+      ${formattedDate ? `<small>${formattedDate}</small><br>` : ""}
+      <strong>Leírás:</strong> ${description || '–'}<br>
+      ${contact ? `<strong>Kapcsolat:</strong> ${contact}<br>` : ''}
+      ${type?.includes("jarmu") && route ? `<strong>Járat:</strong> ${route}<br>` : ''}
+      <br><button class="claim-btn">Ez az enyém</button>
+    </div>
+  `;
+}
+
+function addReportToList(report) {
+  const alapTipus = report.type?.includes("talaltam") ? "talaltam" : "keresem";
+  allReports.unshift({
+    html: createReportHtml(report),
+    type: alapTipus,
+    category: report.category || "Ismeretlen"
+  });
+  updateVisibleItems();
+}
+
+function placeMarker(report) {
+  if (!report.lat || !report.lng) return;
+
+  let icon = null;
+  if (report.type?.includes("jarmu")) {
+    icon = report.type.includes("talaltam") ? greenBusIcon : redBusIcon;
+  }
+
+  const marker = icon
+    ? L.marker([report.lat, report.lng], { icon })
+    : L.marker([report.lat, report.lng]);
+
+  marker.bindPopup(createReportHtml(report));
+  marker.addTo(map);
+  mapMarkers.push(marker);
+}
+
+async function loadReportsFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Hiba a jelentések betöltésekor:", error);
+    return;
+  }
+
+  allReports.length = 0;
+  mapMarkers.forEach(m => map.removeLayer(m));
+  mapMarkers.length = 0;
+
+  data.forEach((report) => {
+    addReportToList(report);
+    placeMarker(report);
+  });
+}
 
 function updateVisibleItems() {
   const reportItems = document.getElementById('reportItems');
@@ -244,29 +320,45 @@ map.on('click', function (e) {
   ideiglenesMarker = icon ? L.marker([lat, lng], { icon }).addTo(map) : L.marker([lat, lng]).addTo(map);
   ideiglenesMarker.bindPopup("Bejelentés folyamatban...").openPopup();
   document.getElementById('markerForm').classList.remove('hidden');
+  lastClickedCoords = { lat, lng };
 });
 
-document.getElementById('saveBtn').addEventListener('click', () => {
+document.getElementById('saveBtn').addEventListener('click', async () => {
   const desc = document.getElementById('descriptionInput').value;
   const contact = document.getElementById('contactInput').value;
   const route = document.getElementById('routeInput').value;
-  const tipusSzoveg = bejelentesTipus.includes("talaltam") ? "<span style='color:green;font-weight:bold'>Találtam</span>" : "<span style='color:red;font-weight:bold'>Keresem</span>";
   const kategoriaSzoveg = selectedCategory || "Ismeretlen";
 
+  if (!lastClickedCoords) {
+    alert("Kérlek, tűzd le a helyszínt a térképen!");
+    return;
+  }
 
-  const html = `
-    <div class="report-card">
-      ${tipusSzoveg} – ${kategoriaSzoveg}<br>
-      <strong>Leírás:</strong> ${desc || '–'}<br>
-      ${contact ? `<strong>Kapcsolat:</strong> ${contact}<br>` : ''}
-      ${bejelentesTipus.includes("jarmu") && route ? `<strong>Járat:</strong> ${route}<br>` : ''}
-      <br><button class="claim-btn">Ez az enyém</button>
-    </div>
-  `;
+  const newReport = {
+    type: bejelentesTipus,
+    category: kategoriaSzoveg,
+    description: desc,
+    contact,
+    route,
+    lat: lastClickedCoords.lat,
+    lng: lastClickedCoords.lng,
+    created_at: new Date().toISOString()
+  };
 
-  allReports.unshift({ html, type: bejelentesTipus.includes("talaltam") ? "talaltam" : "keresem", category: kategoriaSzoveg });
-  updateVisibleItems();
+  const { error, data } = await supabaseClient
+    .from("reports")
+    .insert([newReport])
+    .select()
+    .single();
 
+  if (error) {
+    console.error("Hiba a mentéskor:", error);
+    alert("Nem sikerült elmenteni a bejelentést. Próbáld újra!");
+    return;
+  }
+
+  addReportToList(data);
+  placeMarker(data);
 
   document.getElementById('markerForm').classList.add('hidden');
   document.getElementById('photoInput').value = "";
@@ -274,9 +366,11 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   document.getElementById('contactInput').value = "";
   document.getElementById('routeInput').value = "";
   ideiglenesMarker = null;
+  lastClickedCoords = null;
 });
 
 updateVisibleItems();
+loadReportsFromSupabase();
 
 document.getElementById('menuLoginBtn').addEventListener('click', () => {
   document.getElementById('modal').classList.add('show');
