@@ -604,9 +604,7 @@ async function init() {
 
   state.supabaseOnline = await checkSupabaseConnection();
   await hydrateAuth();
-  if (state.supabaseOnline) {
-    await loadReports();
-  }
+  await loadReports();
 }
 
 init();
