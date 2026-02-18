@@ -169,13 +169,21 @@ function renderMapMarkers() {
 
 async function checkSupabaseConnection() {
   if (!supabaseClient) {
-    setInfo("Supabase kliens nem inicializálható.");
+    setInfo("Supabase kliens nem inicializálható (URL vagy kulcs hibás).");
     return false;
   }
 
-  const { error } = await supabaseClient.from("bejelentesek").select("id").limit(1);
+  const { error } = await supabaseClient.from("bejelentesek").select("id", { count: "exact", head: true });
   if (error) {
-    setInfo("Supabase nem elérhető / séma hiányzik.");
+    const msg = String(error.message || "").toLowerCase();
+    if (msg.includes("relation") && msg.includes("does not exist")) {
+      setInfo("Supabase hiba: hiányzik a bejelentesek tábla. Futtasd le a supabase_schema.sql fájlt.");
+    } else if (msg.includes("permission denied") || msg.includes("row-level security")) {
+      setInfo("Supabase hiba: RLS policy hiányzik vagy hibás. Ellenőrizd a select policy-ket.");
+    } else {
+      setInfo(`Supabase hiba: ${error.message}`);
+    }
+    console.error("Supabase kapcsolat hiba:", error);
     return false;
   }
   setInfo("Supabase kapcsolat rendben.");

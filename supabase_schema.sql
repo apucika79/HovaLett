@@ -28,30 +28,35 @@ alter table public.bejelentesek enable row level security;
 alter table public.uzenetek enable row level security;
 
 -- csak bejelentkezett user hozhat létre adatot
-create policy if not exists "bejelentesek_insert_auth"
+drop policy if exists "bejelentesek_insert_auth" on public.bejelentesek;
+create policy "bejelentesek_insert_auth"
   on public.bejelentesek for insert
   to authenticated
   with check (auth.uid() = user_id);
 
 -- saját bejelentéseket láthatja
-create policy if not exists "bejelentesek_select_own"
+drop policy if exists "bejelentesek_select_own" on public.bejelentesek;
+create policy "bejelentesek_select_own"
   on public.bejelentesek for select
   to authenticated
   using (auth.uid() = user_id);
 
 -- opcionális: publikus térképhez olvasható bejelentések
-create policy if not exists "bejelentesek_select_public"
+drop policy if exists "bejelentesek_select_public" on public.bejelentesek;
+create policy "bejelentesek_select_public"
   on public.bejelentesek for select
   to anon
   using (true);
 
 -- üzeneteket csak a küldő és címzett láthatja
-create policy if not exists "uzenetek_select_participants"
+drop policy if exists "uzenetek_select_participants" on public.uzenetek;
+create policy "uzenetek_select_participants"
   on public.uzenetek for select
   to authenticated
   using (auth.uid() = from_user_id or auth.uid() = to_user_id);
 
-create policy if not exists "uzenetek_insert_sender"
+drop policy if exists "uzenetek_insert_sender" on public.uzenetek;
+create policy "uzenetek_insert_sender"
   on public.uzenetek for insert
   to authenticated
   with check (auth.uid() = from_user_id);
@@ -60,11 +65,13 @@ insert into storage.buckets (id, name, public)
 values ('report-images', 'report-images', true)
 on conflict (id) do nothing;
 
-create policy if not exists "storage_public_read_report_images"
+drop policy if exists "storage_public_read_report_images" on storage.objects;
+create policy "storage_public_read_report_images"
   on storage.objects for select
   using (bucket_id = 'report-images');
 
-create policy if not exists "storage_auth_upload_report_images"
+drop policy if exists "storage_auth_upload_report_images" on storage.objects;
+create policy "storage_auth_upload_report_images"
   on storage.objects for insert
   to authenticated
   with check (bucket_id = 'report-images');
