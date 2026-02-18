@@ -1,0 +1,414 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+h1 {
+  margin-top: 20px;
+}
+
+.button-row {
+  margin: 20px 0;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 0 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+}
+
+#foundBtn {
+  background-color: #4CAF50;
+}
+
+#lostBtn {
+  background-color: #f44336;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Térkép és panelek */
+.main-container {
+  display: flex;
+  height: 600px;
+  margin: 20px auto;
+  max-width: 1400px;
+}
+
+#leftPanel, #rightPanel {
+  width: 250px;
+  background-color: #f1f1f1;
+  padding: 10px;
+  overflow-y: auto;
+  border-radius: 10px;
+}
+
+#map {
+  flex-grow: 1;
+  margin: 0 10px;
+  border-radius: 10px;
+}
+
+/* Szűrőgombok */
+.filter-group {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.filter-btn {
+  flex: 1;
+  padding: 10px;
+  margin: 0 5px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  color: white;
+}
+
+.filter-btn.green {
+  background-color: #4CAF50;
+}
+
+.filter-btn.red {
+  background-color: #f44336;
+}
+
+.filter-cat.active {
+  background-color: #1565c0;
+  font-weight: bold;
+}
+
+.filter-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+
+.filter-cat {
+  width: 90%;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #2196F3;
+  color: white;
+  cursor: pointer;
+  text-align: center;
+}
+
+
+
+.filter-cat.active {
+  background-color: #42a5f5;
+  font-weight: bold;
+}
+
+/* Jobb oldali bejelentéskártyák */
+.report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.report-card {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  text-align: left;
+  font-size: 14px;
+}
+
+.claim-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  margin-top: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Popup stílus */
+.leaflet-popup-content {
+  font-size: 14px;
+  text-align: left;
+  margin: 8px 0;
+}
+
+/* Modal ablak */
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal:not(.hidden) {
+  display: flex;
+}
+.modal.show {
+  display: flex;
+}
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+.modal-buttons {
+  margin-top: 20px;
+}
+.modal-buttons button {
+  margin: 0 10px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+/* Bejelentés űrlap */
+#markerForm {
+  margin: 30px auto;
+  padding: 20px;
+  max-width: 400px;
+  background-color: #f8f8f8;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  text-align: left;
+}
+
+#markerForm input,
+#markerForm textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+#saveBtn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.filter-btn.active {
+  box-shadow: 0 0 0 2px #fff inset;
+  transform: scale(1.05);
+  opacity: 1;
+}
+
+#topMenu {
+  background-color: #f0f0f0;
+  padding: 4px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  border-bottom: 1px solid #ccc;
+  height: 36px;
+  align-items: center;
+  max-width: 1400px;
+  margin: 10px auto;
+  border-radius: 8px;
+}
+
+
+
+
+.menu-btn {
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 6px 10px;
+}
+.menu-btn:hover {
+  text-decoration: underline;
+}
+
+.social-login {
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  width: 80%;
+  margin: 5px 0;
+  cursor: pointer;
+}
+
+.social-login.facebook {
+  background-color: #3b5998;
+}
+
+.social-login.google {
+  background-color: #db4437;
+}
+
+.logged-user {
+  margin-left: auto;
+  margin-right: 10px;
+  align-self: center;
+  font-weight: bold;
+  color: #444;
+}
+
+.hidden {
+  display: none;
+}
+
+.filter-cat {
+  position: relative;
+  width: 90%;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #90caf9;
+  color: white;
+  cursor: pointer;
+  text-align: center;
+  padding-right: 30px; /* hely az ikonhoz */
+}
+
+.filter-cat::after {
+  content: "🔘";
+  position: absolute;
+  right: 10px;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.filter-cat.active::after {
+  content: "✅";
+}
+
+.filter-btn {
+  position: relative;
+  padding-right: 30px; /* hely az ikon számára */
+}
+
+/* inaktív ikon alapból */
+.filter-btn::after {
+  content: "🔘";
+  position: absolute;
+  right: 10px;
+  font-size: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s;
+}
+
+/* ha aktív, akkor zöld vagy piros pipa */
+#filterTalaltam.active::after {
+  content: "✅";
+  color: #4CAF50;
+}
+
+#filterKeresem.active::after {
+  content: "✅";
+  color: #f44336;
+}
+#valasztoModal .valaszto-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+  gap: 20px;
+}
+
+#valasztoModal .valaszto-buttons button {
+  flex: 1;
+  min-width: 140px;
+  height: 80px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: #2196F3;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 10px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+#valasztoModal .valaszto-buttons button:hover {
+  background-color: #1976d2;
+  transform: scale(1.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.kat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2 oszlop */
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.kat-valaszto-btn {
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  background-color: #2196F3;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.kat-valaszto-btn:hover {
+  background-color: #1976d2;
+  transform: scale(1.03);
+}
+
+.modal .standard-btn {
+  background-color: #2196F3;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  margin: 5px 0;
+  width: 80%;
+}
+
+.modal .standard-btn:hover {
+  background-color: #1976D2;
+}
