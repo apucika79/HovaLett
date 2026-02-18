@@ -26,6 +26,60 @@ const state = {
   supabaseOnline: false,
 };
 
+function createDemoReports() {
+  const now = Date.now();
+  return [
+    {
+      id: "demo-1",
+      user_id: "demo-user-1",
+      tipus: "talalt",
+      kategoria: "Telefon -és Kiegészítők",
+      cim: "Utcán/épületben",
+      leiras: "Fekete telefontokkal együtt talált iPhone.",
+      lat: 47.4972,
+      lng: 19.0433,
+      created_at: new Date(now - 1000 * 60 * 45).toISOString(),
+      image_url: null,
+    },
+    {
+      id: "demo-2",
+      user_id: "demo-user-2",
+      tipus: "keresett",
+      kategoria: "Kulcs",
+      cim: "Járat: 4-6 villamos",
+      leiras: "Autókulcs kék kulcstartóval.",
+      lat: 47.5084,
+      lng: 19.0538,
+      created_at: new Date(now - 1000 * 60 * 95).toISOString(),
+      image_url: null,
+    },
+    {
+      id: "demo-3",
+      user_id: "demo-user-3",
+      tipus: "talalt",
+      kategoria: "Pénz, Pénztárca",
+      cim: "Utcán/épületben",
+      leiras: "Barna bőr pénztárca igazolvány nélkül.",
+      lat: 47.4918,
+      lng: 19.0366,
+      created_at: new Date(now - 1000 * 60 * 170).toISOString(),
+      image_url: null,
+    },
+    {
+      id: "demo-4",
+      user_id: "demo-user-4",
+      tipus: "keresett",
+      kategoria: "Okmányok",
+      cim: "Utcán/épületben",
+      leiras: "Diákigazolványt keresek, névre szóló.",
+      lat: 47.5039,
+      lng: 19.0314,
+      created_at: new Date(now - 1000 * 60 * 240).toISOString(),
+      image_url: null,
+    },
+  ];
+}
+
 const typeToLabel = {
   talalt: "Talált",
   keresett: "Keresett",
@@ -153,10 +207,8 @@ function renderMapMarkers() {
   clearMarkers();
   state.reports.filter(isReportVisible).forEach((report) => {
     if (typeof report.lat !== "number" || typeof report.lng !== "number") return;
-    const icon = report.cim?.toLowerCase().includes("járat")
-      ? (report.tipus === "talalt" ? greenBusIcon : redBusIcon)
-      : null;
-    const marker = icon ? L.marker([report.lat, report.lng], { icon }) : L.marker([report.lat, report.lng]);
+    const icon = report.tipus === "talalt" ? greenBusIcon : redBusIcon;
+    const marker = L.marker([report.lat, report.lng], { icon });
     marker.bindPopup(markerPopupHtml(report));
     marker.on("popupopen", () => {
       const btn = document.querySelector(`[data-message-report=\"${report.id}\"]`);
@@ -191,10 +243,19 @@ async function checkSupabaseConnection() {
 }
 
 async function loadReports() {
-  if (!state.supabaseOnline) return;
+  if (!state.supabaseOnline) {
+    state.reports = createDemoReports();
+    setInfo("Supabase offline: demó bejelentések megjelenítve.");
+    updateVisibleItems();
+    renderMapMarkers();
+    return;
+  }
   const { data, error } = await supabaseClient.from("bejelentesek").select("*").order("created_at", { ascending: false });
   if (error) return;
-  state.reports = data || [];
+  state.reports = (data && data.length > 0) ? data : createDemoReports();
+  if (!data || data.length === 0) {
+    setInfo("Nincs még adatbázis bejegyzés: demó bejelentések megjelenítve.");
+  }
   updateVisibleItems();
   renderMapMarkers();
 }
