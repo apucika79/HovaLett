@@ -1,516 +1,546 @@
-// Egyszerű tesztfelhasználó (memóriában)
-const testUser = {
-  email: "a@a.hu",
-  password: "a",
-  name: "Teszt Elek"
+const SUPABASE_URL = "https://eishxohixndoiltazdzu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT";
+
+const DISABLED_PROJECT_HOSTS = new Set(["eishxohixndoiltazdzu.supabase.co"]);
+
+function isSupabaseConfigUsable(url, key) {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.endsWith(".supabase.co")) return false;
+    if (DISABLED_PROJECT_HOSTS.has(u.hostname)) return false;
+    return Boolean(key && key.length > 20);
+  } catch {
+    return false;
+  }
+}
+
+const state = {
+  user: null,
+  profile: null,
+  markers: [],
+  reports: [],
+  activeTypes: new Set(["talalt", "keresett"]),
+  activeCategories: new Set(),
+  reportType: null,
+  selectedCategory: null,
+  pendingCoords: null,
+  pendingLocationType: null,
+  currentReportForMessage: null,
+  supabaseOnline: false,
 };
-let loggedInUser = null;
-let isLoggedIn = false;
-let bejelentesTipus = "";
-let ideiglenesMarker = null;
-let selectedCategory = "";
-let helyValasztasKesz = false;
 
+const typeToLabel = {
+  talalt: "Talált",
+  keresett: "Keresett",
+};
 
+const categoryMap = {
+  "Telefon -és Kiegészítők": "Telefon -és Kiegészítők",
+  "Pénz, Pénztárca": "Pénz, Pénztárca",
+  "Okmányok": "Okmányok",
+  "Ruházat, táska": "Ruházat, táska",
+  "Kulcs": "Kulcs",
+  "Háziállat": "Háziállat",
+  "Ékszer": "Ékszer",
+  "Egyéb": "Egyéb",
+  Telefon: "Telefon -és Kiegészítők",
+  Pénztárca: "Pénz, Pénztárca",
+  Okmány: "Okmányok",
+  Ruházat: "Ruházat, táska",
+};
 
-const greenBusIcon = L.icon({
-  iconUrl: 'bus-green.png',
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -35]
-});
+const greenBusIcon = L.icon({ iconUrl: "bus-green.png", iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] });
+const redBusIcon = L.icon({ iconUrl: "bus-red.png", iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] });
 
-const redBusIcon = L.icon({
-  iconUrl: 'bus-red.png',
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -35]
-});
+const map = L.map("map").setView([47.4979, 19.0402], 13);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
 
-const supabaseUrl = "https://eishxohixndoiltazdzu.supabase.co";
-const supabaseAnonKey = "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT";
-const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_ANON_KEY)
+  ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
-const map = L.map('map').setView([47.4979, 19.0402], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap közreműködők',
-}).addTo(map);
+const el = {
+  foundBtn: document.getElementById("foundBtn"),
+  lostBtn: document.getElementById("lostBtn"),
+  modal: document.getElementById("modal"),
+  modalContent: document.querySelector("#modal .modal-content"),
+  logoutBtn: document.getElementById("logoutBtn"),
+  loginBtn: document.getElementById("menuLoginBtn"),
+  loggedUser: document.getElementById("loggedUser"),
+  reportItems: document.getElementById("reportItems"),
+  markerForm: document.getElementById("markerForm"),
+  descriptionInput: document.getElementById("descriptionInput"),
+  contactInput: document.getElementById("contactInput"),
+  photoInput: document.getElementById("photoInput"),
+  routeInput: document.getElementById("routeInput"),
+  routeBox: document.getElementById("járatBox"),
+  valasztoModal: document.getElementById("valasztoModal"),
+  datumModal: document.getElementById("datumModal"),
+  helyModal: document.getElementById("helyModal"),
+  kategoriaModal: document.getElementById("kategoriavalasztoModal"),
+  bejelentesBox: document.getElementById("bejelentesBox"),
+  valasztoBox: document.getElementById("valasztoBox"),
+  profileView: document.getElementById("profileView"),
+  mainContainer: document.querySelector(".main-container"),
+  homeBtn: document.getElementById("homeBtn"),
+  myReportsBtn: document.getElementById("myReportsBtn"),
+  myMessagesBtn: document.getElementById("myMessagesBtn"),
+  profileUserInfo: document.getElementById("profileUserInfo"),
+  myReportsList: document.getElementById("myReportsList"),
+  messageList: document.getElementById("messageList"),
+  messageModal: document.getElementById("messageModal"),
+  messageBody: document.getElementById("messageBody"),
+  sendFirstMessageBtn: document.getElementById("sendFirstMessageBtn"),
+  cancelFirstMessageBtn: document.getElementById("cancelFirstMessageBtn"),
+};
 
-const activeTypes = new Set(['talaltam', 'keresem']);
-const activeCategories = new Set(['Telefon', 'Kulcs', 'Pénztárca', 'Hátizsák', 'Szemüveg', 'Kisállat', 'Kabát', 'Egyéb']);
-const allReports = [];
-let lastClickedCoords = null;
-const mapMarkers = [];
-
-function createReportHtml({ type, category, description, contact, route, created_at }) {
-  const alapTipus = type?.includes("talaltam") ? "talaltam" : "keresem";
-  const tipusSzoveg = alapTipus === "talaltam"
-    ? "<span style='color:green;font-weight:bold'>Találtam</span>"
-    : "<span style='color:red;font-weight:bold'>Keresem</span>";
-
-  const formattedDate = created_at
-    ? new Date(created_at).toLocaleString("hu-HU", { dateStyle: "medium", timeStyle: "short" })
-    : "";
-
-  return `
-    <div class="report-card">
-      ${tipusSzoveg} – ${category || "Ismeretlen"}<br>
-      ${formattedDate ? `<small>${formattedDate}</small><br>` : ""}
-      <strong>Leírás:</strong> ${description || '–'}<br>
-      ${contact ? `<strong>Kapcsolat:</strong> ${contact}<br>` : ''}
-      ${type?.includes("jarmu") && route ? `<strong>Járat:</strong> ${route}<br>` : ''}
-      <br><button class="claim-btn">Ez az enyém</button>
-    </div>
-  `;
+function setInfo(text) {
+  const target = document.getElementById("supabaseStatus");
+  if (target) target.textContent = text;
 }
 
-function addReportToList(report) {
-  const alapTipus = report.type?.includes("talaltam") ? "talaltam" : "keresem";
-  allReports.unshift({
-    html: createReportHtml(report),
-    type: alapTipus,
-    category: report.category || "Ismeretlen"
-  });
-  updateVisibleItems();
+function resetReportFlow() {
+  state.pendingCoords = null;
+  state.pendingLocationType = null;
+  state.selectedCategory = null;
+  el.routeInput.value = "";
+  el.descriptionInput.value = "";
+  el.contactInput.value = "";
+  el.photoInput.value = "";
+  el.routeBox.classList.add("hidden");
+  el.markerForm.classList.add("hidden");
 }
 
-function placeMarker(report) {
-  if (!report.lat || !report.lng) return;
-
-  let icon = null;
-  if (report.type?.includes("jarmu")) {
-    icon = report.type.includes("talaltam") ? greenBusIcon : redBusIcon;
-  }
-
-  const marker = icon
-    ? L.marker([report.lat, report.lng], { icon })
-    : L.marker([report.lat, report.lng]);
-
-  marker.bindPopup(createReportHtml(report));
-  marker.addTo(map);
-  mapMarkers.push(marker);
+function typeFromSelection() {
+  return state.reportType === "talaltam" ? "talalt" : "keresett";
 }
 
-async function loadReportsFromSupabase() {
-  const { data, error } = await supabaseClient
-    .from("reports")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Hiba a jelentések betöltésekor:", error);
-    return;
-  }
-
-  allReports.length = 0;
-  mapMarkers.forEach(m => map.removeLayer(m));
-  mapMarkers.length = 0;
-
-  data.forEach((report) => {
-    addReportToList(report);
-    placeMarker(report);
-  });
+function isReportVisible(report) {
+  return state.activeTypes.has(report.tipus) && state.activeCategories.has(report.kategoria);
 }
 
 function updateVisibleItems() {
-  const reportItems = document.getElementById('reportItems');
-  reportItems.innerHTML = '';
-  allReports.forEach(item => {
-    if (
-      (activeTypes.size === 0 || activeTypes.has(item.type)) &&
-      (activeCategories.size === 0 || activeCategories.has(item.category))
-    ) {
-      const card = document.createElement('div');
-      card.className = 'report-card';
-      card.innerHTML = item.html;
-      reportItems.appendChild(card);
-    }
+  el.reportItems.innerHTML = "";
+  state.reports.filter(isReportVisible).forEach((report) => {
+    const card = document.createElement("div");
+    card.className = "report-card";
+    card.innerHTML = reportCardHtml(report);
+    el.reportItems.appendChild(card);
   });
 }
 
-function toggleFilter(button, set, value) {
-  if (set.has(value)) {
-    set.delete(value);
-    button.classList.remove('active');
-  } else {
-    set.add(value);
-    button.classList.add('active');
-  }
-  updateVisibleItems();
-}
-
-document.getElementById('filterTalaltam').addEventListener('click', function () {
-  toggleFilter(this, activeTypes, 'talaltam');
-});
-document.getElementById('filterKeresem').addEventListener('click', function () {
-  toggleFilter(this, activeTypes, 'keresem');
-});
-
-document.querySelectorAll('.filter-cat').forEach(btn => {
-  btn.addEventListener('click', function () {
-    const cat = this.getAttribute('data-cat');
-    toggleFilter(this, activeCategories, cat);
-  });
-});
-
-document.getElementById('foundBtn').addEventListener('click', () => {
-  if (!isLoggedIn) {
-    document.getElementById('modal').classList.add('show');
-    return;
-  }
-  bejelentesTipus = "talaltam";
-  document.getElementById('foundBtn').style.display = "none";
-  document.getElementById('lostBtn').style.display = "none";
-  document.getElementById('valasztoBox').classList.remove('hidden');
-});
-
-document.getElementById('lostBtn').addEventListener('click', () => {
-  if (!isLoggedIn) {
-    document.getElementById('modal').classList.add('show');
-    return;
-  }
-  bejelentesTipus = "keresem";
-  document.getElementById('foundBtn').style.display = "none";
-  document.getElementById('lostBtn').style.display = "none";
-  document.getElementById('valasztoBox').classList.remove('hidden');
-});
-
-
-document.getElementById('utcaBtn').addEventListener('click', () => {
-  bejelentesTipus += "_utca";
-  document.getElementById('valasztoBox').classList.add('hidden');
-  document.getElementById('bejelentesBox').classList.remove('hidden');
-});
-
-document.getElementById('jarmuBtn').addEventListener('click', () => {
-  bejelentesTipus += "_jarmu";
-  document.getElementById('valasztoBox').classList.add('hidden');
-  document.getElementById('bejelentesBox').classList.remove('hidden');
-});
-
-document.querySelector('.back-btn').addEventListener('click', () => {
-  document.getElementById('foundBtn').style.display = "inline-block";
-  document.getElementById('lostBtn').style.display = "inline-block";
-  document.getElementById('bejelentesBox').classList.add('hidden');
-  document.getElementById('valasztoBox').classList.add('hidden');
-});
-
-document.querySelectorAll('.cat-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (!isLoggedIn) {
-      document.getElementById('modal').classList.add('show');
-    }
-  });
-});
-
-document.getElementById('loginBtn').addEventListener('click', () => {
-  const modalContent = document.querySelector('.modal-content');
-  modalContent.innerHTML = `
-  <h3>Bejelentkezés</h3>
-  <input type="email" id="loginEmail" placeholder="Email cím"><br><br>
-  <input type="password" id="loginPassword" placeholder="Jelszó"><br><br>
-  <button id="submitLoginBtn" class="standard-btn">Bejelentkezés</button><br>
-  <button class="social-login facebook">Facebook</button>
-  <button class="social-login google">Google</button><br><br>
-  <button id="backToChoiceBtn" class="standard-btn">Vissza</button>
-`;
-
-
-  // Vissza a fő modal nézetre
-  document.getElementById('backToChoiceBtn').addEventListener('click', () => {
-    location.reload();
-  });
-
-  // ⬇ Itt jön a valódi bejelentkezési logika:
-  document.getElementById('submitLoginBtn').addEventListener('click', () => {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
-    if (email === testUser.email && password === testUser.password) {
-  isLoggedIn = true;
-  loggedInUser = testUser;
-
-  document.getElementById('modal').classList.remove('show');
-  document.getElementById('kategoriavalasztoModal').classList.remove('hidden');
-
-
-  document.getElementById('loggedUser').textContent = "Bejelentkezve: " + loggedInUser.name;
-  document.getElementById('loggedUser').classList.remove('hidden');
-  document.getElementById('menuLoginBtn').classList.add('hidden');
-  document.getElementById('logoutBtn').classList.remove('hidden');
-
-  document.getElementById('foundBtn').style.display = "none";
-  document.getElementById('lostBtn').style.display = "none";
-} else {
-  alert("Hibás e-mail vagy jelszó.");
-}
-
-  });
-});
-
-
-document.getElementById('registerBtn').addEventListener('click', () => {
-  const modalContent = document.querySelector('.modal-content');
-  modalContent.innerHTML = `
-    <h3>Regisztráció</h3>
-    <input type="text" id="regName" placeholder="Teljes név"><br><br>
-    <input type="email" id="regEmail" placeholder="Email cím"><br><br>
-    <input type="password" id="regPassword" placeholder="Jelszó"><br><br>
-    <button id="submitRegisterBtn">Regisztráció</button><br><br>
-    <button class="social-login facebook">Facebook</button>
-    <button class="social-login google">Google</button><br><br>
-    <button id="backToChoiceBtn">Vissza</button>
+function reportCardHtml(report) {
+  return `
+    <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${typeToLabel[report.tipus] || report.tipus}</strong> – ${report.kategoria}<br>
+    <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
+    <strong>Cím:</strong> ${report.cim || "-"}<br>
+    <strong>Leírás:</strong> ${report.leiras || "-"}<br>
+    ${report.image_url ? `<a href="${report.image_url}" target="_blank" rel="noopener">Kép megnyitása</a><br>` : ""}
   `;
-
-  // Visszalépés az eredeti kétgombos nézethez
-  document.getElementById('backToChoiceBtn').addEventListener('click', () => {
-    location.reload(); // újratöltés
-  });
-});
-
-
-function sikeresBelepes() {
-  isLoggedIn = true;
-  loggedInUser = testUser;
-  document.getElementById('modal').classList.remove('show');
-
-  document.getElementById('loggedUser').textContent = "Bejelentkezve: " + loggedInUser.name;
-  document.getElementById('loggedUser').classList.remove('hidden');
-  document.getElementById('menuLoginBtn').classList.add('hidden');
-  document.getElementById('logoutBtn').classList.remove('hidden');
-  
 }
 
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  isLoggedIn = false;
-  loggedInUser = null;
+function markerPopupHtml(report) {
+  const msgButton = state.user && state.user.id !== report.user_id
+    ? `<button class="claim-btn" data-message-report="${report.id}">Üzenetküldés</button>`
+    : "";
 
-  document.getElementById('loggedUser').classList.add('hidden');
-  document.getElementById('menuLoginBtn').classList.remove('hidden');
-  document.getElementById('logoutBtn').classList.add('hidden');
+  return `${reportCardHtml(report)}${msgButton}`;
+}
 
-  // visszaállítás a főoldalra
-  document.getElementById('valasztoBox').classList.add('hidden');
-  document.getElementById('bejelentesBox').classList.add('hidden');
-  document.getElementById('foundBtn').style.display = "inline-block";
-  document.getElementById('lostBtn').style.display = "inline-block";
-});
+function clearMarkers() {
+  state.markers.forEach((m) => map.removeLayer(m));
+  state.markers = [];
+}
 
+function renderMapMarkers() {
+  clearMarkers();
+  state.reports.filter(isReportVisible).forEach((report) => {
+    if (typeof report.lat !== "number" || typeof report.lng !== "number") return;
+    const icon = report.cim?.toLowerCase().includes("járat")
+      ? (report.tipus === "talalt" ? greenBusIcon : redBusIcon)
+      : null;
+    const marker = icon ? L.marker([report.lat, report.lng], { icon }) : L.marker([report.lat, report.lng]);
+    marker.bindPopup(markerPopupHtml(report));
+    marker.on("popupopen", () => {
+      const btn = document.querySelector(`[data-message-report=\"${report.id}\"]`);
+      if (btn) btn.onclick = () => openFirstMessageModal(report);
+    });
+    marker.addTo(map);
+    state.markers.push(marker);
+  });
+}
 
-map.on('click', function (e) {
-  if (!isLoggedIn) {
-    alert("Kérlek, előbb jelentkezz be!");
-    return;
+async function checkSupabaseConnection() {
+  if (!supabaseClient) {
+    setInfo("Supabase kliens nem inicializálható.");
+    return false;
   }
 
-  const { lat, lng } = e.latlng;
-  let icon = null;
-
-  if (bejelentesTipus.includes("jarmu")) {
-    icon = bejelentesTipus.includes("talaltam") ? greenBusIcon : redBusIcon;
-    document.getElementById('járatBox').classList.remove('hidden');
-  } else {
-    document.getElementById('járatBox').classList.add('hidden');
+  const { error } = await supabaseClient.from("bejelentesek").select("id").limit(1);
+  if (error) {
+    setInfo("Supabase nem elérhető / séma hiányzik.");
+    return false;
   }
+  setInfo("Supabase kapcsolat rendben.");
+  return true;
+}
 
-  if (ideiglenesMarker) {
-    map.removeLayer(ideiglenesMarker);
-  }
+async function loadReports() {
+  if (!state.supabaseOnline) return;
+  const { data, error } = await supabaseClient.from("bejelentesek").select("*").order("created_at", { ascending: false });
+  if (error) return;
+  state.reports = data || [];
+  updateVisibleItems();
+  renderMapMarkers();
+}
 
-  ideiglenesMarker = icon ? L.marker([lat, lng], { icon }).addTo(map) : L.marker([lat, lng]).addTo(map);
-  ideiglenesMarker.bindPopup("Bejelentés folyamatban...").openPopup();
-  document.getElementById('markerForm').classList.remove('hidden');
-  lastClickedCoords = { lat, lng };
-});
+async function refreshProfileData() {
+  if (!state.user || !state.supabaseOnline) return;
+  const { data: myReports } = await supabaseClient
+    .from("bejelentesek")
+    .select("*")
+    .eq("user_id", state.user.id)
+    .order("created_at", { ascending: false });
 
-document.getElementById('saveBtn').addEventListener('click', async () => {
-  const desc = document.getElementById('descriptionInput').value;
-  const contact = document.getElementById('contactInput').value;
-  const route = document.getElementById('routeInput').value;
-  const kategoriaSzoveg = selectedCategory || "Ismeretlen";
+  el.myReportsList.innerHTML = (myReports || []).map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
 
-  if (!lastClickedCoords) {
-    alert("Kérlek, tűzd le a helyszínt a térképen!");
-    return;
-  }
+  const { data: messages } = await supabaseClient
+    .from("uzenetek")
+    .select("*")
+    .or(`from_user_id.eq.${state.user.id},to_user_id.eq.${state.user.id}`)
+    .order("created_at", { ascending: false });
 
-  const newReport = {
-    type: bejelentesTipus,
-    category: kategoriaSzoveg,
-    description: desc,
-    contact,
-    route,
-    lat: lastClickedCoords.lat,
-    lng: lastClickedCoords.lng,
-    created_at: new Date().toISOString()
+  el.messageList.innerHTML = (messages || []).map((msg) => {
+    const inOut = msg.from_user_id === state.user.id ? "Kimenő" : "Bejövő";
+    return `<div class="report-card"><strong>${inOut}</strong> #${msg.report_id}<br>${msg.body}<br><small>${new Date(msg.created_at).toLocaleString("hu-HU")}</small>${msg.to_user_id !== state.user.id ? "" : `<br><button class=\"claim-btn\" data-reply-report=\"${msg.report_id}\" data-reply-user=\"${msg.from_user_id}\">Válasz</button>`}</div>`;
+  }).join("") || "<p>Nincs üzenet.</p>";
+
+  document.querySelectorAll("[data-reply-report]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.currentReportForMessage = { id: Number(btn.dataset.replyReport), user_id: btn.dataset.replyUser };
+      openFirstMessageModal(state.currentReportForMessage, true);
+    });
+  });
+}
+
+function showProfile() {
+  if (!state.user) return;
+  el.mainContainer.classList.add("hidden");
+  el.bejelentesBox.classList.add("hidden");
+  el.valasztoBox.classList.add("hidden");
+  el.profileView.classList.remove("hidden");
+  el.profileUserInfo.textContent = `${state.user.email}`;
+  refreshProfileData();
+}
+
+function showHome() {
+  el.profileView.classList.add("hidden");
+  el.mainContainer.classList.remove("hidden");
+}
+
+async function uploadImageIfAny(file) {
+  if (!file || !state.supabaseOnline) return null;
+  const ext = file.name.split(".").pop();
+  const path = `${state.user.id}/${Date.now()}.${ext}`;
+  const { error } = await supabaseClient.storage.from("report-images").upload(path, file, { upsert: false });
+  if (error) return null;
+  const { data } = supabaseClient.storage.from("report-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function saveReport() {
+  if (!supabaseClient) return alert("Supabase nincs beállítva.");
+  if (!state.user) return alert("Bejelentkezés szükséges.");
+  if (!state.pendingCoords) return alert("Előbb jelöld a helyet a térképen.");
+  if (!state.selectedCategory) return alert("Válassz kategóriát.");
+
+  const imageUrl = await uploadImageIfAny(el.photoInput.files?.[0]);
+
+  const payload = {
+    user_id: state.user.id,
+    tipus: typeFromSelection(),
+    kategoria: categoryMap[state.selectedCategory] || state.selectedCategory,
+    cim: state.pendingLocationType === "jarmu" ? `Járat: ${el.routeInput.value || "n/a"}` : "Utcán/épületben",
+    leiras: el.descriptionInput.value,
+    lat: state.pendingCoords.lat,
+    lng: state.pendingCoords.lng,
+    image_url: imageUrl,
+    status: "aktiv",
   };
 
-  const { error, data } = await supabaseClient
-    .from("reports")
-    .insert([newReport])
-    .select()
-    .single();
+  const { error } = await supabaseClient.from("bejelentesek").insert([payload]);
+  if (error) return alert("Mentési hiba. Ellenőrizd a Supabase táblát/RLS-t.");
 
-  if (error) {
-    console.error("Hiba a mentéskor:", error);
-    alert("Nem sikerült elmenteni a bejelentést. Próbáld újra!");
+  resetReportFlow();
+  await loadReports();
+  await refreshProfileData();
+  alert("Bejelentés mentve.");
+}
+
+function renderAuthModal(mode = "choice") {
+  if (mode === "choice") {
+    el.modalContent.innerHTML = `
+      <p>Ehhez a művelethez regisztráció szükséges. Jelentkezz be vagy regisztrálj.</p>
+      <div class="modal-buttons">
+        <button id="loginBtn">Belépés</button>
+        <button id="registerBtn">Regisztráció</button>
+      </div>`;
+    document.getElementById("loginBtn").onclick = () => renderAuthModal("login");
+    document.getElementById("registerBtn").onclick = () => renderAuthModal("register");
     return;
   }
 
-  addReportToList(data);
-  placeMarker(data);
+  el.modalContent.innerHTML = `
+    <h3>${mode === "login" ? "Bejelentkezés" : "Regisztráció"}</h3>
+    <input type="email" id="authEmail" placeholder="Email cím"><br><br>
+    <input type="password" id="authPassword" placeholder="Jelszó"><br><br>
+    <button id="authSubmitBtn">${mode === "login" ? "Bejelentkezés" : "Regisztráció"}</button><br><br>
+    <button id="authBackBtn">Vissza</button>
+  `;
 
-  document.getElementById('markerForm').classList.add('hidden');
-  document.getElementById('photoInput').value = "";
-  document.getElementById('descriptionInput').value = "";
-  document.getElementById('contactInput').value = "";
-  document.getElementById('routeInput').value = "";
-  ideiglenesMarker = null;
-  lastClickedCoords = null;
-});
+  document.getElementById("authBackBtn").onclick = () => renderAuthModal("choice");
+  document.getElementById("authSubmitBtn").onclick = async () => {
+    if (!supabaseClient) return alert("Supabase nincs beállítva.");
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
 
-updateVisibleItems();
-loadReportsFromSupabase();
+    const action = mode === "login"
+      ? supabaseClient.auth.signInWithPassword({ email, password })
+      : supabaseClient.auth.signUp({ email, password });
 
-document.getElementById('menuLoginBtn').addEventListener('click', () => {
-  document.getElementById('modal').classList.add('show');
-});
+    const { error } = await action;
+    if (error) return alert(error.message);
 
-// Szinkronizálás a kezdéskor: ha van 'active' class, tegyük a Set-be
-document.querySelectorAll('.filter-cat.active').forEach(btn => {
-  const cat = btn.getAttribute('data-cat');
-  activeCategories.add(cat);
-});
+    if (mode === "register") {
+      alert("Regisztráció kész. Ha email megerősítés kell, igazold vissza.");
+      return;
+    }
+    await hydrateAuth();
+    el.modal.classList.add("hidden");
+    el.modal.classList.remove("show");
+  };
+}
 
-document.addEventListener('click', function(event) {
-  if (event.target.id === 'modalUtcaBtn') {
-    bejelentesTipus = bejelentesTipus || "talaltam";
-    bejelentesTipus += "_utca";
-    document.getElementById('valasztoModal').classList.remove('show');
-    initializeDatePicker();
-    document.getElementById('datumModal').classList.remove('hidden');
+async function hydrateAuth() {
+  if (!supabaseClient) {
+    state.user = null;
+    el.loggedUser.classList.add("hidden");
+    el.loginBtn.classList.remove("hidden");
+    el.logoutBtn.classList.add("hidden");
+    el.homeBtn.classList.add("hidden");
+    return;
   }
 
-  if (event.target.id === 'modalJarmuBtn') {
-    bejelentesTipus = bejelentesTipus || "talaltam";
-    bejelentesTipus += "_jarmu";
-    document.getElementById('valasztoModal').classList.remove('show');
-    initializeDatePicker();
-    document.getElementById('datumModal').classList.remove('hidden');
+  const { data } = await supabaseClient.auth.getUser();
+  state.user = data.user || null;
+
+  if (state.user) {
+    el.loggedUser.textContent = `Bejelentkezve: ${state.user.email}`;
+    el.loggedUser.classList.remove("hidden");
+    el.loginBtn.classList.add("hidden");
+    el.logoutBtn.classList.remove("hidden");
+    el.homeBtn.classList.remove("hidden");
+  } else {
+    el.loggedUser.classList.add("hidden");
+    el.loginBtn.classList.remove("hidden");
+    el.logoutBtn.classList.add("hidden");
+    el.homeBtn.classList.add("hidden");
+    showHome();
   }
-});
+}
 
-document.getElementById('datumModalOkBtn').addEventListener('click', () => {
-    helyValasztasKesz = true;
-  document.getElementById('datumModal').classList.add('hidden');
-  document.getElementById('helyModal').classList.remove('hidden');
-});
+function openFirstMessageModal(report, isReply = false) {
+  if (!state.user) return alert("Előbb jelentkezz be.");
+  state.currentReportForMessage = report;
+  el.messageBody.value = "";
+  document.getElementById("messageModalTitle").textContent = isReply ? "Válasz üzenet" : "Első kapcsolatfelvétel";
+  el.messageModal.classList.remove("hidden");
+}
 
+async function sendMessageFromModal() {
+  if (!supabaseClient) return;
+  const body = el.messageBody.value.trim();
+  if (!body || !state.currentReportForMessage || !state.user) return;
 
+  const targetUser = String(state.currentReportForMessage.user_id);
+  const { error } = await supabaseClient.from("uzenetek").insert([{
+    from_user_id: state.user.id,
+    to_user_id: targetUser,
+    report_id: Number(state.currentReportForMessage.id),
+    body,
+  }]);
+  if (error) return alert("Üzenet mentési hiba.");
 
+  el.messageModal.classList.add("hidden");
+  await refreshProfileData();
+}
 
-document.getElementById('helyModalOkBtn').addEventListener('click', () => {
-  document.getElementById('helyModal').classList.add('hidden');
+function initFilters() {
+  document.querySelectorAll(".filter-cat").forEach((btn) => {
+    const cat = btn.dataset.cat;
+    state.activeCategories.add(cat);
+    btn.addEventListener("click", () => {
+      if (state.activeCategories.has(cat)) {
+        state.activeCategories.delete(cat);
+        btn.classList.remove("active");
+      } else {
+        state.activeCategories.add(cat);
+        btn.classList.add("active");
+      }
+      updateVisibleItems();
+      renderMapMarkers();
+    });
+  });
 
-  // Útmutatás megjelenítése, pl. alerttel vagy egy külön divvel
-  
+  document.getElementById("filterTalaltam").addEventListener("click", function () {
+    this.classList.toggle("active");
+    state.activeTypes.has("talalt") ? state.activeTypes.delete("talalt") : state.activeTypes.add("talalt");
+    updateVisibleItems();
+    renderMapMarkers();
+  });
 
-  // semmit ne nyissunk meg itt, mert a térképre kattintás után indul a markerForm
-});
+  document.getElementById("filterKeresem").addEventListener("click", function () {
+    this.classList.toggle("active");
+    state.activeTypes.has("keresett") ? state.activeTypes.delete("keresett") : state.activeTypes.add("keresett");
+    updateVisibleItems();
+    renderMapMarkers();
+  });
+}
 
+function initReportFlow() {
+  el.foundBtn.addEventListener("click", () => {
+    if (!state.user) {
+      renderAuthModal("choice");
+      el.modal.classList.remove("hidden");
+      el.modal.classList.add("show");
+      return;
+    }
+    state.reportType = "talaltam";
+    el.kategoriaModal.classList.remove("hidden");
+  });
 
-  // Dátumválasztó mezők feltöltése és nap meghatározás
-const yearSelect = document.getElementById('selectYear');
-const monthSelect = document.getElementById('selectMonth');
-const daySelect = document.getElementById('selectDay');
-const dayOfWeek = document.getElementById('dayOfWeek');
+  el.lostBtn.addEventListener("click", () => {
+    if (!state.user) {
+      renderAuthModal("choice");
+      el.modal.classList.remove("hidden");
+      el.modal.classList.add("show");
+      return;
+    }
+    state.reportType = "keresem";
+    el.kategoriaModal.classList.remove("hidden");
+  });
 
-// Dátumfeltöltés 1 évre visszamenőleg
+  document.querySelectorAll(".kat-valaszto-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.selectedCategory = btn.textContent.trim();
+      el.kategoriaModal.classList.add("hidden");
+      el.valasztoModal.classList.remove("hidden");
+      el.valasztoModal.classList.add("show");
+    });
+  });
+
+  document.getElementById("modalUtcaBtn").addEventListener("click", () => {
+    state.pendingLocationType = "utca";
+    el.valasztoModal.classList.add("hidden");
+    el.datumModal.classList.remove("hidden");
+    initializeDatePicker();
+  });
+
+  document.getElementById("modalJarmuBtn").addEventListener("click", () => {
+    state.pendingLocationType = "jarmu";
+    el.valasztoModal.classList.add("hidden");
+    el.datumModal.classList.remove("hidden");
+    initializeDatePicker();
+  });
+
+  document.getElementById("datumModalOkBtn").addEventListener("click", () => {
+    el.datumModal.classList.add("hidden");
+    el.helyModal.classList.remove("hidden");
+  });
+
+  document.getElementById("helyModalOkBtn").addEventListener("click", () => {
+    el.helyModal.classList.add("hidden");
+  });
+
+  map.on("click", (e) => {
+    if (!state.user || !state.reportType || !state.selectedCategory) return;
+    state.pendingCoords = e.latlng;
+    el.markerForm.classList.remove("hidden");
+    if (state.pendingLocationType === "jarmu") el.routeBox.classList.remove("hidden");
+    else el.routeBox.classList.add("hidden");
+  });
+
+  document.getElementById("saveBtn").addEventListener("click", saveReport);
+  document.querySelector(".back-btn").addEventListener("click", () => {
+    resetReportFlow();
+    state.reportType = null;
+  });
+}
+
 function initializeDatePicker() {
+  const yearSelect = document.getElementById("selectYear");
+  const monthSelect = document.getElementById("selectMonth");
+  const daySelect = document.getElementById("selectDay");
+  const dayOfWeek = document.getElementById("dayOfWeek");
   const today = new Date();
-  const currentYear = today.getFullYear();
+  const y = today.getFullYear();
 
-  // Év: csak az aktuális év
-  yearSelect.innerHTML = `<option value="${currentYear}">${currentYear}</option>`;
-
-  // Hónap: csak a mai hónapig visszafelé
-  const currentMonth = today.getMonth();
-  monthSelect.innerHTML = '';
-  for (let m = currentMonth; m >= 0; m--) {
-    const monthName = new Date(currentYear, m).toLocaleString('hu-HU', { month: 'long' });
+  yearSelect.innerHTML = `<option value="${y}">${y}</option>`;
+  monthSelect.innerHTML = "";
+  for (let m = today.getMonth(); m >= 0; m--) {
+    const monthName = new Date(y, m).toLocaleString("hu-HU", { month: "long" });
     monthSelect.innerHTML += `<option value="${m}">${monthName}</option>`;
   }
 
-  updateDays(); // tölti a napokat és a hét napját is
+  const updateDays = () => {
+    const year = Number(yearSelect.value);
+    const month = Number(monthSelect.value);
+    const maxDay = month === today.getMonth() ? today.getDate() : new Date(year, month + 1, 0).getDate();
+    daySelect.innerHTML = "";
+    for (let d = maxDay; d >= 1; d--) daySelect.innerHTML += `<option value="${d}">${d}</option>`;
+    const date = new Date(year, month, Number(daySelect.value));
+    const dayName = date.toLocaleDateString("hu-HU", { weekday: "long" });
+    dayOfWeek.textContent = dayName[0].toUpperCase() + dayName.slice(1);
+  };
+
+  yearSelect.onchange = updateDays;
+  monthSelect.onchange = updateDays;
+  daySelect.onchange = updateDays;
+  updateDays();
 }
 
-function updateDays() {
-  const year = parseInt(yearSelect.value);
-  const month = parseInt(monthSelect.value);
-  const today = new Date();
-  const currentDay = today.getDate();
-
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  daySelect.innerHTML = '';
-
-  // Ha aktuális hónap, csak a mai napig visszamenőleg
-  for (let d = currentDay; d >= 1; d--) {
-    daySelect.innerHTML += `<option value="${d}">${d}</option>`;
-  }
-
-  updateDayOfWeek();
-}
-
-function updateDayOfWeek() {
-  const year = parseInt(yearSelect.value);
-  const month = parseInt(monthSelect.value);
-  const day = parseInt(daySelect.value);
-  const date = new Date(year, month, day);
-
-  const dayName = date.toLocaleDateString('hu-HU', { weekday: 'long' });
-  dayOfWeek.textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-}
-
-// eseménykezelők a dátum módosításához
-yearSelect.addEventListener('change', updateDays);
-monthSelect.addEventListener('change', updateDays);
-daySelect.addEventListener('change', updateDayOfWeek);
-
-document.querySelectorAll('.kat-valaszto-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    selectedCategory = btn.textContent.trim();
-
-    document.getElementById('kategoriavalasztoModal').classList.add('hidden');
-
-    // Ha még nincs eldöntve, hogy utcán vagy járművön találták, akkor most kérdezzük meg
-    if (!bejelentesTipus.includes("_")) {
-      document.getElementById('valasztoModal').classList.remove('hidden');
-      document.getElementById('valasztoModal').classList.add('show');
-    } else {
-      initializeDatePicker();
-      document.getElementById('datumModal').classList.remove('hidden');
-    }
+function bindMenu() {
+  el.loginBtn.addEventListener("click", () => {
+    renderAuthModal("choice");
+    el.modal.classList.remove("hidden");
+    el.modal.classList.add("show");
   });
-});
 
+  el.logoutBtn.addEventListener("click", async () => {
+    if (!supabaseClient) return;
+    await supabaseClient.auth.signOut();
+    state.user = null;
+    await hydrateAuth();
+  });
 
+  el.homeBtn.addEventListener("click", showHome);
+  el.myReportsBtn.addEventListener("click", showProfile);
+  el.myMessagesBtn.addEventListener("click", showProfile);
 
-document.getElementById('modalUtcaBtn').addEventListener('click', () => {
-  if (!bejelentesTipus.includes("_")) {
-    bejelentesTipus += "_utca";
+  el.sendFirstMessageBtn.addEventListener("click", sendMessageFromModal);
+  el.cancelFirstMessageBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));
+}
+
+async function init() {
+  bindMenu();
+  initFilters();
+  initReportFlow();
+
+  state.supabaseOnline = await checkSupabaseConnection();
+  await hydrateAuth();
+  if (state.supabaseOnline) {
+    await loadReports();
   }
-  document.getElementById('valasztoModal').classList.remove('show');
-  initializeDatePicker();
-  document.getElementById('datumModal').classList.remove('hidden');
-});
+}
 
-document.getElementById('modalJarmuBtn').addEventListener('click', () => {
-  if (!bejelentesTipus.includes("_")) {
-    bejelentesTipus += "_jarmu";
-  }
-  document.getElementById('valasztoModal').classList.remove('show');
-  initializeDatePicker();
-  document.getElementById('datumModal').classList.remove('hidden');
-});
-
-
+init();
