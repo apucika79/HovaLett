@@ -1,13 +1,10 @@
 const SUPABASE_URL = "https://eishxohixndoiltazdzu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT";
 
-const DISABLED_PROJECT_HOSTS = new Set(["eishxohixndoiltazdzu.supabase.co"]);
-
 function isSupabaseConfigUsable(url, key) {
   try {
     const u = new URL(url);
     if (!u.hostname.endsWith(".supabase.co")) return false;
-    if (DISABLED_PROJECT_HOSTS.has(u.hostname)) return false;
     return Boolean(key && key.length > 20);
   } catch {
     return false;
