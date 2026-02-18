@@ -166,18 +166,39 @@ function typeFromSelection() {
   return state.reportType === "talaltam" ? "talalt" : "keresett";
 }
 
+function normalizeCategory(category) {
+  const key = String(category || "").trim();
+  return categoryMap[key] || key;
+}
+
+function normalizeReport(report) {
+  const lat = Number(report.lat);
+  const lng = Number(report.lng);
+  return {
+    ...report,
+    kategoria: normalizeCategory(report.kategoria),
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+  };
+}
+
 function isReportVisible(report) {
-  return state.activeTypes.has(report.tipus) && state.activeCategories.has(report.kategoria);
+  return state.activeTypes.has(report.tipus) && state.activeCategories.has(normalizeCategory(report.kategoria));
 }
 
 function updateVisibleItems() {
   el.reportItems.innerHTML = "";
-  state.reports.filter(isReportVisible).forEach((report) => {
+  const visibleReports = state.reports.filter(isReportVisible);
+  visibleReports.forEach((report) => {
     const card = document.createElement("div");
     card.className = "report-card";
     card.innerHTML = reportCardHtml(report);
     el.reportItems.appendChild(card);
   });
+
+  if (visibleReports.length === 0) {
+    el.reportItems.innerHTML = "<p>Nincs a szűrőknek megfelelő tárgy. Kapcsold be több kategóriát vagy típust.</p>";
+  }
 }
 
 function reportCardHtml(report) {
@@ -206,7 +227,7 @@ function clearMarkers() {
 function renderMapMarkers() {
   clearMarkers();
   state.reports.filter(isReportVisible).forEach((report) => {
-    if (typeof report.lat !== "number" || typeof report.lng !== "number") return;
+    if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return;
     const icon = report.tipus === "talalt" ? greenBusIcon : redBusIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.bindPopup(markerPopupHtml(report));
@@ -244,7 +265,7 @@ async function checkSupabaseConnection() {
 
 async function loadReports() {
   if (!state.supabaseOnline) {
-    state.reports = createDemoReports();
+    state.reports = createDemoReports().map(normalizeReport);
     setInfo("Supabase offline: demó bejelentések megjelenítve.");
     updateVisibleItems();
     renderMapMarkers();
@@ -252,7 +273,7 @@ async function loadReports() {
   }
   const { data, error } = await supabaseClient.from("bejelentesek").select("*").order("created_at", { ascending: false });
   if (error) return;
-  state.reports = (data && data.length > 0) ? data : createDemoReports();
+  state.reports = ((data && data.length > 0) ? data : createDemoReports()).map(normalizeReport);
   if (!data || data.length === 0) {
     setInfo("Nincs még adatbázis bejegyzés: demó bejelentések megjelenítve.");
   }
@@ -325,7 +346,7 @@ async function saveReport() {
   const payload = {
     user_id: state.user.id,
     tipus: typeFromSelection(),
-    kategoria: categoryMap[state.selectedCategory] || state.selectedCategory,
+    kategoria: normalizeCategory(state.selectedCategory),
     cim: state.pendingLocationType === "jarmu" ? `Járat: ${el.routeInput.value || "n/a"}` : "Utcán/épületben",
     leiras: el.descriptionInput.value,
     lat: state.pendingCoords.lat,
