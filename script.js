@@ -158,6 +158,11 @@ function stopFocusedReportJump() {
   state.reportFocus.previousView = null;
 }
 
+function isMarkerInteractionTarget(target) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest(".leaflet-marker-icon, .leaflet-popup, .leaflet-control"));
+}
+
 function focusReportOnMap(reportId) {
   const marker = markerByReportId.get(reportId);
   if (!marker) return;
@@ -1014,6 +1019,7 @@ function initReportFlow() {
   });
 
   map.on("click", (e) => {
+    if (isMarkerInteractionTarget(e.originalEvent?.target)) return;
     stopFocusedReportJump();
     if (!state.user || !state.reportType || !state.selectedCategory) return;
     state.pendingCoords = e.latlng;
@@ -1119,6 +1125,7 @@ async function init() {
     if (!state.reportFocus.marker) return;
     const clickedReportCard = event.target.closest(".home-report-item");
     if (clickedReportCard) return;
+    if (isMarkerInteractionTarget(event.target)) return;
     stopFocusedReportJump();
   });
 }
