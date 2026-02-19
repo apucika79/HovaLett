@@ -93,7 +93,9 @@
         <button id="modalUtcaBtn">📍 Utcán/Épületben</button>
         <button id="modalJarmuBtn">🚍 Járművön</button>
       </div>
-      <button id="valasztoBackBtn" class="modal-back-btn">Vissza</button>
+      <div class="modal-actions single-action">
+        <button id="valasztoBackBtn" class="modal-secondary-btn">Vissza</button>
+      </div>
     </div>
   </div>
 
@@ -101,8 +103,10 @@
     <div class="modal-content">
       <button class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <p>Kérlek, tűzd le a térképen a pontos helyet.</p>
-      <button id="helyModalOkBtn">OK</button>
-      <button id="helyBackBtn" class="modal-back-btn">Vissza</button>
+      <div class="modal-actions">
+        <button id="helyBackBtn" class="modal-secondary-btn">Vissza</button>
+        <button id="helyModalOkBtn" class="modal-primary-btn">OK</button>
+      </div>
     </div>
   </div>
 
@@ -117,8 +121,10 @@
       <label for="selectDay">Nap:</label>
       <select id="selectDay"></select><br><br>
       <p>Nap: <strong id="dayOfWeek"></strong></p>
-      <button id="datumModalOkBtn">OK</button>
-      <button id="datumBackBtn" class="modal-back-btn">Vissza</button>
+      <div class="modal-actions">
+        <button id="datumBackBtn" class="modal-secondary-btn">Vissza</button>
+        <button id="datumModalOkBtn" class="modal-primary-btn">OK</button>
+      </div>
     </div>
   </div>
 
@@ -136,7 +142,9 @@
         <button class="kat-valaszto-btn">Ékszer</button>
         <button class="kat-valaszto-btn">Egyéb</button>
       </div>
-      <button id="kategoriaBackBtn" class="modal-back-btn">Vissza</button>
+      <div class="modal-actions single-action">
+        <button id="kategoriaBackBtn" class="modal-secondary-btn">Vissza</button>
+      </div>
     </div>
   </div>
 

@@ -91,7 +91,7 @@ button {
 .modal-content {
   position: relative;
   background-color: #fff;
-  padding: 20px 20px 56px;
+  padding: 20px;
   border-radius: 10px;
   width: 90%;
   max-width: 420px;
@@ -112,12 +112,28 @@ button {
   padding: 0;
 }
 
-.modal-back-btn {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 14px;
+.modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.modal-actions.single-action {
+  justify-content: center;
+}
+
+.modal-primary-btn,
+.modal-secondary-btn {
+  min-width: 120px;
   margin: 0;
+}
+
+.modal-primary-btn {
+  background-color: #4CAF50;
+}
+
+.modal-secondary-btn {
   background-color: #607d8b;
 }
 .modal-content textarea,
