@@ -314,13 +314,27 @@ function isReportVisible(report) {
   return state.activeTypes.has(report.tipus) && state.activeCategories.has(normalizeCategory(report.kategoria));
 }
 
+function getReportSortValue(report) {
+  const createdAtTimestamp = Date.parse(report.created_at);
+  if (Number.isFinite(createdAtTimestamp)) return createdAtTimestamp;
+
+  const numericId = Number(report.id);
+  if (Number.isFinite(numericId)) return numericId;
+
+  return 0;
+}
+
+function sortReportsByNewestFirst(reports) {
+  return [...reports].sort((a, b) => getReportSortValue(b) - getReportSortValue(a));
+}
+
 function getReportsForCurrentView() {
   if (state.viewMode === "myReports") {
     if (!state.user) return [];
-    return state.reports.filter((report) => report.user_id === state.user.id);
+    return sortReportsByNewestFirst(state.reports.filter((report) => report.user_id === state.user.id));
   }
 
-  return state.reports.filter(isReportVisible);
+  return sortReportsByNewestFirst(state.reports.filter(isReportVisible));
 }
 
 function updateVisibleItems() {
