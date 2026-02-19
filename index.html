@@ -70,15 +70,23 @@
 
   <div id="bejelentesBox" class="hidden">
     <div id="markerForm" class="hidden">
+      <button id="markerFormCloseBtn" class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
+      <h3>Részletek megadása</h3>
+      <label for="photoInput">Kép feltöltése</label>
       <input type="file" id="photoInput" accept="image/*" /><br><br>
+      <label for="descriptionInput">Leírás</label>
       <textarea id="descriptionInput" rows="4" cols="40" placeholder="Leírás..."></textarea><br><br>
+      <label for="contactInput">Elérhetőség (opcionális)</label>
       <input type="text" id="contactInput" placeholder="Elérhetőség (opcionális)" /><br><br>
       <div id="járatBox" class="hidden">
+        <label for="routeInput">Járatszám</label>
         <input type="text" id="routeInput" placeholder="Járatszám (pl. 7-es busz)" /><br><br>
       </div>
-      <button id="saveBtn">Mentés</button>
+      <div class="modal-actions">
+        <button class="modal-secondary-btn back-btn" type="button">Vissza</button>
+        <button id="saveBtn" class="modal-primary-btn" type="button">Mentés</button>
+      </div>
     </div>
-    <button class="back-btn">Főoldal</button>
   </div>
 
   <div id="modal" class="modal hidden">
