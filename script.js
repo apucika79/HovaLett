@@ -277,25 +277,38 @@ function getRandomDigits(length) {
   return buffer;
 }
 
-async function generateUniqueReportCode(tipus, category) {
+function generateReportCodeCandidate(tipus, category) {
+  const codePrefix = `${getReportTypePrefix(tipus)}${getCategoryPrefix(category)}`;
+
+  return `${codePrefix}${getRandomDigits(REPORT_CODE_DIGITS)}`;
+}
+
+function isReportCodeConflict(error) {
+  if (!error) return false;
+  if (error.code === "23505") return true;
+
+  const message = String(error.message || "");
+  return message.includes("bejelentesek_report_code_key") || message.includes("report_code");
+}
+
+async function createReportWithUniqueCode(payloadBase) {
   if (!supabaseClient) {
     throw new Error("Supabase nincs beállítva, azonosító nem generálható.");
   }
 
-  const codePrefix = `${getReportTypePrefix(tipus)}${getCategoryPrefix(category)}`;
+  const tipus = payloadBase.tipus;
+  const category = payloadBase.kategoria;
 
   for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
-    const candidate = `${codePrefix}${getRandomDigits(REPORT_CODE_DIGITS)}`;
-    const { count, error } = await supabaseClient
+    const reportCode = generateReportCodeCandidate(tipus, category);
+    const { error } = await supabaseClient
       .from("bejelentesek")
-      .select("id", { head: true, count: "exact" })
-      .eq("report_code", candidate);
+      .insert([{ ...payloadBase, report_code: reportCode }]);
 
-    if (error) {
-      throw new Error(`Azonosító ellenőrzési hiba: ${error.message}`);
+    if (!error) return;
+    if (!isReportCodeConflict(error)) {
+      throw new Error(`Mentési hiba: ${error.message}`);
     }
-
-    if (!count) return candidate;
   }
 
   throw new Error("Nem sikerült egyedi azonosítót generálni, próbáld újra.");
@@ -1038,18 +1051,9 @@ async function saveReport() {
   }
 
   const savedCoords = adjustDroppedMarkerPosition(state.pendingCoords);
-  let reportCode;
-  try {
-    reportCode = await generateUniqueReportCode(typeFromSelection(), state.selectedCategory);
-  } catch (err) {
-    alert(err.message || "Nem sikerült azonosítót generálni.");
-    return;
-  }
-
-  const payload = {
+  const payloadBase = {
     user_id: state.user.id,
     tipus: typeFromSelection(),
-    report_code: reportCode,
     kategoria: normalizeCategory(state.selectedCategory),
     cim: state.pendingLocationType === "jarmu" ? `Járat: ${el.routeInput.value || "n/a"}` : "Utcán/épületben",
     leiras: el.descriptionInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH),
@@ -1060,8 +1064,12 @@ async function saveReport() {
     status: "aktiv",
   };
 
-  const { error } = await supabaseClient.from("bejelentesek").insert([payload]);
-  if (error) return alert(`Mentési hiba: ${error.message}`);
+  try {
+    await createReportWithUniqueCode(payloadBase);
+  } catch (err) {
+    alert(err.message || "Mentési hiba.");
+    return;
+  }
 
   resetReportFlow();
   await loadReports();
