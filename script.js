@@ -279,23 +279,9 @@ function generateReportCodeCandidate() {
 }
 
 function generateUniqueDisplayCodes(reports) {
-  const usedCodes = new Set();
-
   return reports.map((report) => {
     const existingCode = String(report.report_code || "").trim();
-    if (existingCode) {
-      usedCodes.add(existingCode);
-      return report;
-    }
-
-    for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
-      const candidate = generateReportCodeCandidate();
-      if (usedCodes.has(candidate)) continue;
-
-      usedCodes.add(candidate);
-      return { ...report, report_code: candidate };
-    }
-
+    if (existingCode) return report;
     return { ...report, report_code: String(report.id || "-") };
   });
 }
@@ -305,9 +291,10 @@ async function createReport(payloadBase) {
     throw new Error("Supabase nincs beállítva, mentés nem lehetséges.");
   }
 
+  const generatedCode = generateReportCodeCandidate();
   const { error } = await supabaseClient
     .from("bejelentesek")
-    .insert([payloadBase]);
+    .insert([{ ...payloadBase, report_code: generatedCode }]);
 
   if (error) throw new Error(`Mentési hiba: ${error.message}`);
 }
@@ -393,11 +380,12 @@ async function handleSaveReportChanges() {
   const newTitle = el.manageReportTitleInput.value.trim();
   const newDesc = el.manageReportDescInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH);
 
-  const { error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("bejelentesek")
     .update({ cim: newTitle || "Utcán/épületben", leiras: newDesc })
     .eq("id", selectedOwnReport.id)
-    .eq("user_id", state.user.id);
+    .eq("user_id", state.user.id)
+    .select("id");
 
   if (error) {
     if (String(error.message || "").toLowerCase().includes("row-level security")) {
@@ -405,6 +393,11 @@ async function handleSaveReportChanges() {
       return;
     }
     alert(`Módosítás sikertelen: ${error.message}`);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert("Módosítás nem történt: a bejelentés nem található vagy nincs jogosultság.");
     return;
   }
 
@@ -419,11 +412,12 @@ async function handleDeleteReport() {
   const ok = window.confirm("Biztosan törlöd ezt a bejelentést?");
   if (!ok) return;
 
-  const { error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("bejelentesek")
     .delete()
     .eq("id", selectedOwnReport.id)
-    .eq("user_id", state.user.id);
+    .eq("user_id", state.user.id)
+    .select("id");
 
   if (error) {
     if (String(error.message || "").toLowerCase().includes("row-level security")) {
@@ -431,6 +425,11 @@ async function handleDeleteReport() {
       return;
     }
     alert(`Törlés sikertelen: ${error.message}`);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert("Törlés nem történt: a bejelentés nem található vagy nincs jogosultság.");
     return;
   }
 
@@ -1447,3 +1446,12 @@ async function init() {
 }
 
 init();
+  if (!data || data.length === 0) {
+    alert("Módosítás nem történt: a bejelentés nem található vagy nincs jogosultság.");
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert("Törlés nem történt: a bejelentés nem található vagy nincs jogosultság.");
+    return;
+  }
