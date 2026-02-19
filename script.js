@@ -279,9 +279,23 @@ function generateReportCodeCandidate() {
 }
 
 function generateUniqueDisplayCodes(reports) {
+  const usedCodes = new Set();
+
   return reports.map((report) => {
     const existingCode = String(report.report_code || "").trim();
-    if (existingCode) return report;
+    if (existingCode) {
+      usedCodes.add(existingCode);
+      return report;
+    }
+
+    for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
+      const candidate = generateReportCodeCandidate();
+      if (usedCodes.has(candidate)) continue;
+
+      usedCodes.add(candidate);
+      return { ...report, report_code: candidate };
+    }
+
     return { ...report, report_code: String(report.id || "-") };
   });
 }
@@ -291,10 +305,9 @@ async function createReport(payloadBase) {
     throw new Error("Supabase nincs beállítva, mentés nem lehetséges.");
   }
 
-  const generatedCode = generateReportCodeCandidate();
   const { error } = await supabaseClient
     .from("bejelentesek")
-    .insert([{ ...payloadBase, report_code: generatedCode }]);
+    .insert([payloadBase]);
 
   if (error) throw new Error(`Mentési hiba: ${error.message}`);
 }
@@ -314,27 +327,13 @@ function isReportVisible(report) {
   return state.activeTypes.has(report.tipus) && state.activeCategories.has(normalizeCategory(report.kategoria));
 }
 
-function getReportSortValue(report) {
-  const createdAtTimestamp = Date.parse(report.created_at);
-  if (Number.isFinite(createdAtTimestamp)) return createdAtTimestamp;
-
-  const numericId = Number(report.id);
-  if (Number.isFinite(numericId)) return numericId;
-
-  return 0;
-}
-
-function sortReportsByNewestFirst(reports) {
-  return [...reports].sort((a, b) => getReportSortValue(b) - getReportSortValue(a));
-}
-
 function getReportsForCurrentView() {
   if (state.viewMode === "myReports") {
     if (!state.user) return [];
-    return sortReportsByNewestFirst(state.reports.filter((report) => report.user_id === state.user.id));
+    return state.reports.filter((report) => report.user_id === state.user.id);
   }
 
-  return sortReportsByNewestFirst(state.reports.filter(isReportVisible));
+  return state.reports.filter(isReportVisible);
 }
 
 function updateVisibleItems() {
@@ -349,18 +348,11 @@ function updateVisibleItems() {
     card.innerHTML = reportCardHtml(report, {
       includeDescription: !isHomeLikeView,
       includeDetailButton: isHomeLikeView,
-      includeManageButton: state.viewMode === "myReports",
     });
     if (isHomeLikeView) {
       const detailBtn = card.querySelector("[data-focus-report]");
       detailBtn?.addEventListener("click", () => {
         focusReportOnMap(report.id);
-        openReportDetailModal(report);
-      });
-
-      const manageBtn = card.querySelector("[data-manage-report]");
-      manageBtn?.addEventListener("click", () => {
-        openManageReportModal(report);
       });
     }
     el.reportItems.appendChild(card);
@@ -394,24 +386,14 @@ async function handleSaveReportChanges() {
   const newTitle = el.manageReportTitleInput.value.trim();
   const newDesc = el.manageReportDescInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH);
 
-  const { data, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from("bejelentesek")
     .update({ cim: newTitle || "Utcán/épületben", leiras: newDesc })
     .eq("id", selectedOwnReport.id)
-    .eq("user_id", state.user.id)
-    .select("id");
+    .eq("user_id", state.user.id);
 
   if (error) {
-    if (String(error.message || "").toLowerCase().includes("row-level security")) {
-      alert("Módosítás sikertelen: hiányzik a bejelentesek_update_own RLS policy a Supabase-ban.");
-      return;
-    }
     alert(`Módosítás sikertelen: ${error.message}`);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    alert("Módosítás nem történt: a bejelentés nem található vagy nincs jogosultság.");
     return;
   }
 
@@ -426,24 +408,14 @@ async function handleDeleteReport() {
   const ok = window.confirm("Biztosan törlöd ezt a bejelentést?");
   if (!ok) return;
 
-  const { data, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from("bejelentesek")
     .delete()
     .eq("id", selectedOwnReport.id)
-    .eq("user_id", state.user.id)
-    .select("id");
+    .eq("user_id", state.user.id);
 
   if (error) {
-    if (String(error.message || "").toLowerCase().includes("row-level security")) {
-      alert("Törlés sikertelen: hiányzik a bejelentesek_delete_own RLS policy a Supabase-ban.");
-      return;
-    }
     alert(`Törlés sikertelen: ${error.message}`);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    alert("Törlés nem történt: a bejelentés nem található vagy nincs jogosultság.");
     return;
   }
 
@@ -454,16 +426,13 @@ async function handleDeleteReport() {
 }
 
 function reportCardHtml(report, options = {}) {
-  const { includeDescription = true, includeDetailButton = false, includeManageButton = false } = options;
+  const { includeDescription = true, includeDetailButton = false } = options;
   const imageUrls = getImageUrls(report.image_url);
   const descriptionRow = includeDescription
     ? `<strong>Leírás:</strong> ${report.leiras || "-"}<br>`
     : "";
   const detailButton = includeDetailButton
     ? `<button type="button" class="report-details-btn" data-focus-report="${report.id}">Részletek</button>`
-    : "";
-  const manageButton = includeManageButton
-    ? `<button type="button" class="report-details-btn" data-manage-report="${report.id}">Kezelés</button>`
     : "";
 
   return `
@@ -472,7 +441,7 @@ function reportCardHtml(report, options = {}) {
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
     ${descriptionRow}
-    ${detailButton}${detailButton && manageButton ? " " : ""}${manageButton}
+    ${detailButton}
   `;
 }
 
@@ -937,31 +906,7 @@ async function refreshProfileData() {
     .order("created_at", { ascending: false });
 
   const normalizedMyReports = generateUniqueDisplayCodes((myReports || []).map(normalizeReport));
-  el.myReportsList.innerHTML = normalizedMyReports
-    .map((report) => `<div class="report-card">${reportCardHtml(report, { includeDetailButton: true, includeManageButton: true })}</div>`)
-    .join("") || "<p>Nincs saját bejelentés.</p>";
-
-  el.myReportsList.querySelectorAll("[data-focus-report]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const reportId = Number(btn.dataset.focusReport);
-      const selectedReport = normalizedMyReports.find((report) => report.id === reportId);
-      if (!selectedReport) return;
-
-      showMyReports();
-      focusReportOnMap(reportId);
-      openReportDetailModal(selectedReport);
-    });
-  });
-
-  el.myReportsList.querySelectorAll("[data-manage-report]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const reportId = Number(btn.dataset.manageReport);
-      const selectedReport = normalizedMyReports.find((report) => report.id === reportId);
-      if (!selectedReport) return;
-
-      openManageReportModal(selectedReport);
-    });
-  });
+  el.myReportsList.innerHTML = normalizedMyReports.map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
 
   const { data: messages } = await supabaseClient
     .from("uzenetek")
@@ -1114,6 +1059,7 @@ async function saveReport() {
     leiras: el.descriptionInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH),
     lat: savedCoords.lat,
     lng: savedCoords.lng,
+    created_at: (state.reportDateTime || new Date()).toISOString(),
     image_url: imageUrls.length ? JSON.stringify(imageUrls) : null,
     status: "aktiv",
   };
@@ -1459,12 +1405,3 @@ async function init() {
 }
 
 init();
-  if (!data || data.length === 0) {
-    alert("Módosítás nem történt: a bejelentés nem található vagy nincs jogosultság.");
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    alert("Törlés nem történt: a bejelentés nem található vagy nincs jogosultság.");
-    return;
-  }
