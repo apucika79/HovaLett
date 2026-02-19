@@ -83,7 +83,7 @@ const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 const MAX_DESCRIPTION_LENGTH = 150;
 const MIN_MARKER_DISTANCE_METERS = 12;
 const MAX_UPLOAD_IMAGES = 3;
-const REPORT_CODE_LENGTH = 7;
+const REPORT_CODE_LENGTH = 6;
 const REPORT_CODE_MAX_ATTEMPTS = 50;
 
 const map = L.map("map").setView([47.4979, 19.0402], 13);
@@ -254,23 +254,8 @@ function normalizeCategory(category) {
   return categoryMap[key] || key;
 }
 
-function getReportTypePrefix(tipus) {
-  return tipus === "talalt" ? "T" : "E";
-}
-
-function getCategoryPrefix(category) {
-  const normalized = String(normalizeCategory(category) || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
-
-  const firstTwo = normalized.slice(0, 2);
-  return firstTwo.padEnd(2, "X");
-}
-
 function getRandomCodeSuffix(length) {
-  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const alphabet = "0123456789";
   let buffer = "";
 
   const cryptoObj = window.crypto || window.msCrypto;
@@ -289,41 +274,42 @@ function getRandomCodeSuffix(length) {
   return buffer;
 }
 
-function generateReportCodeCandidate(tipus, category) {
-  const codePrefix = `${getReportTypePrefix(tipus)}${getCategoryPrefix(category)}`;
-
-  return `${codePrefix}${getRandomCodeSuffix(REPORT_CODE_LENGTH)}`;
+function generateReportCodeCandidate() {
+  return getRandomCodeSuffix(REPORT_CODE_LENGTH);
 }
 
-function isReportCodeConflict(error) {
-  if (!error) return false;
-  if (error.code === "23505") return true;
+function generateUniqueDisplayCodes(reports) {
+  const usedCodes = new Set();
 
-  const message = String(error.message || "");
-  return message.includes("bejelentesek_report_code_key") || message.includes("duplicate key value");
-}
-
-async function createReportWithUniqueCode(payloadBase) {
-  if (!supabaseClient) {
-    throw new Error("Supabase nincs beállítva, azonosító nem generálható.");
-  }
-
-  const tipus = payloadBase.tipus;
-  const category = payloadBase.kategoria;
-
-  for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
-    const reportCode = generateReportCodeCandidate(tipus, category);
-    const { error } = await supabaseClient
-      .from("bejelentesek")
-      .insert([{ ...payloadBase, report_code: reportCode }]);
-
-    if (!error) return;
-    if (!isReportCodeConflict(error)) {
-      throw new Error(`Mentési hiba: ${error.message}`);
+  return reports.map((report) => {
+    const existingCode = String(report.report_code || "").trim();
+    if (existingCode) {
+      usedCodes.add(existingCode);
+      return report;
     }
+
+    for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
+      const candidate = generateReportCodeCandidate();
+      if (usedCodes.has(candidate)) continue;
+
+      usedCodes.add(candidate);
+      return { ...report, report_code: candidate };
+    }
+
+    return { ...report, report_code: String(report.id || "-") };
+  });
+}
+
+async function createReport(payloadBase) {
+  if (!supabaseClient) {
+    throw new Error("Supabase nincs beállítva, mentés nem lehetséges.");
   }
 
-  throw new Error("Nem sikerült egyedi azonosítót generálni, próbáld újra.");
+  const { error } = await supabaseClient
+    .from("bejelentesek")
+    .insert([payloadBase]);
+
+  if (error) throw new Error(`Mentési hiba: ${error.message}`);
 }
 
 function normalizeReport(report) {
@@ -902,7 +888,7 @@ async function loadReports() {
     renderMapMarkers();
     return;
   }
-  state.reports = (data || []).map(normalizeReport);
+  state.reports = generateUniqueDisplayCodes((data || []).map(normalizeReport));
   if (!data || data.length === 0) {
     setInfo("Nincs még éles bejelentés az adatbázisban.");
   }
@@ -918,7 +904,8 @@ async function refreshProfileData() {
     .eq("user_id", state.user.id)
     .order("created_at", { ascending: false });
 
-  el.myReportsList.innerHTML = (myReports || []).map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
+  const normalizedMyReports = generateUniqueDisplayCodes((myReports || []).map(normalizeReport));
+  el.myReportsList.innerHTML = normalizedMyReports.map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
 
   const { data: messages } = await supabaseClient
     .from("uzenetek")
@@ -1077,7 +1064,7 @@ async function saveReport() {
   };
 
   try {
-    await createReportWithUniqueCode(payloadBase);
+    await createReport(payloadBase);
   } catch (err) {
     alert(err.message || "Mentési hiba.");
     return;
