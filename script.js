@@ -154,12 +154,14 @@ function resetReportFlow() {
   state.pendingCoords = null;
   state.pendingLocationType = null;
   state.selectedCategory = null;
+  state.reportType = null;
   el.routeInput.value = "";
   el.descriptionInput.value = "";
   el.contactInput.value = "";
   el.photoInput.value = "";
   el.routeBox.classList.add("hidden");
   el.markerForm.classList.add("hidden");
+  el.bejelentesBox.classList.add("hidden");
 }
 
 function typeFromSelection() {
@@ -323,6 +325,7 @@ function showProfile() {
 function showHome() {
   el.profileView.classList.add("hidden");
   el.mainContainer.classList.remove("hidden");
+  el.bejelentesBox.classList.add("hidden");
 }
 
 async function uploadImageIfAny(file) {
@@ -330,7 +333,16 @@ async function uploadImageIfAny(file) {
   const ext = file.name.split(".").pop();
   const path = `${state.user.id}/${Date.now()}.${ext}`;
   const { error } = await supabaseClient.storage.from("report-images").upload(path, file, { upsert: false });
-  if (error) return null;
+  if (error) {
+    const msg = String(error.message || "").toLowerCase();
+    if (msg.includes("bucket") && msg.includes("not found")) {
+      throw new Error("A report-images storage bucket hiányzik a Supabase projektben.");
+    }
+    if (msg.includes("permission") || msg.includes("row-level")) {
+      throw new Error("Nincs jogosultság kép feltöltésre (Storage policy hiányzik vagy hibás).");
+    }
+    throw new Error(`Kép feltöltési hiba: ${error.message}`);
+  }
   const { data } = supabaseClient.storage.from("report-images").getPublicUrl(path);
   return data.publicUrl;
 }
@@ -341,7 +353,13 @@ async function saveReport() {
   if (!state.pendingCoords) return alert("Előbb jelöld a helyet a térképen.");
   if (!state.selectedCategory) return alert("Válassz kategóriát.");
 
-  const imageUrl = await uploadImageIfAny(el.photoInput.files?.[0]);
+  let imageUrl = null;
+  try {
+    imageUrl = await uploadImageIfAny(el.photoInput.files?.[0]);
+  } catch (err) {
+    alert(err.message || "Kép feltöltési hiba.");
+    return;
+  }
 
   const payload = {
     user_id: state.user.id,
@@ -503,6 +521,7 @@ function initReportFlow() {
       return;
     }
     state.reportType = "talaltam";
+    el.bejelentesBox.classList.remove("hidden");
     el.kategoriaModal.classList.remove("hidden");
   });
 
@@ -514,6 +533,7 @@ function initReportFlow() {
       return;
     }
     state.reportType = "keresem";
+    el.bejelentesBox.classList.remove("hidden");
     el.kategoriaModal.classList.remove("hidden");
   });
 
@@ -560,7 +580,6 @@ function initReportFlow() {
   document.getElementById("saveBtn").addEventListener("click", saveReport);
   document.querySelector(".back-btn").addEventListener("click", () => {
     resetReportFlow();
-    state.reportType = null;
   });
 }
 
