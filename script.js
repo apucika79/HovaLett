@@ -40,6 +40,7 @@ const state = {
     previousView: null,
   },
   isPlacingMarker: false,
+  isReportFlowActive: false,
 };
 
 const typeToLabel = {
@@ -153,7 +154,7 @@ function syncFocusedMarkerState() {
 
     const isFocusedMarker = state.reportFocus.reportId === reportId;
     const hasFocusedMarker = Boolean(state.reportFocus.reportId);
-    const shouldMuteMarker = state.isPlacingMarker || (hasFocusedMarker && !isFocusedMarker);
+    const shouldMuteMarker = state.isReportFlowActive || state.isPlacingMarker || (hasFocusedMarker && !isFocusedMarker);
 
     markerElement.classList.toggle("is-pulsing-marker", isFocusedMarker);
     markerElement.classList.toggle("is-muted-marker", shouldMuteMarker);
@@ -218,6 +219,8 @@ function hideFlowModals() {
 
 function resetReportFlow() {
   setMarkerPlacementMode(false);
+  state.isReportFlowActive = false;
+  syncFocusedMarkerState();
   state.pendingCoords = null;
   if (state.pendingMarker) {
     map.removeLayer(state.pendingMarker);
@@ -768,8 +771,7 @@ function renderMapMarkers() {
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.on("click", () => {
-      if (state.isPlacingMarker) {
-        setPendingMarkerAt(marker.getLatLng());
+      if (state.isReportFlowActive) {
         return;
       }
       if (state.reportFocus.reportId && state.reportFocus.reportId !== report.id) return;
@@ -1122,6 +1124,8 @@ function initReportFlow() {
       return;
     }
     state.reportType = "talaltam";
+    state.isReportFlowActive = true;
+    syncFocusedMarkerState();
     el.bejelentesBox.classList.remove("hidden");
     el.kategoriaModal.classList.remove("hidden");
   });
@@ -1134,6 +1138,8 @@ function initReportFlow() {
       return;
     }
     state.reportType = "keresem";
+    state.isReportFlowActive = true;
+    syncFocusedMarkerState();
     el.bejelentesBox.classList.remove("hidden");
     el.kategoriaModal.classList.remove("hidden");
   });
