@@ -74,12 +74,11 @@ button {
   font-size: 14px;
 }
 
-.home-report-item {
-  cursor: pointer;
-}
-
-.home-report-item:hover {
-  box-shadow: 0 0 0 2px #42a5f5;
+.report-details-btn {
+  margin: 10px 0 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: #2196f3;
 }
 
 .leaflet-marker-icon.is-pulsing-marker {

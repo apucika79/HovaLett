@@ -254,15 +254,16 @@ function updateVisibleItems() {
   el.reportItems.innerHTML = "";
   const visibleReports = getReportsForCurrentView();
   visibleReports.forEach((report) => {
+    const isHomeView = state.viewMode === "home";
     const card = document.createElement("div");
     card.className = "report-card";
-    card.innerHTML = reportCardHtml(report);
+    card.innerHTML = reportCardHtml(report, { includeDescription: !isHomeView, includeDetailButton: isHomeView });
     if (state.viewMode === "myReports") {
       card.classList.add("my-report-item");
       card.addEventListener("click", () => openManageReportModal(report));
-    } else if (state.viewMode === "home") {
-      card.classList.add("home-report-item");
-      card.addEventListener("click", () => focusReportOnMap(report.id));
+    } else if (isHomeView) {
+      const detailBtn = card.querySelector("[data-focus-report]");
+      detailBtn?.addEventListener("click", () => focusReportOnMap(report.id));
     }
     el.reportItems.appendChild(card);
   });
@@ -334,14 +335,22 @@ async function handleDeleteReport() {
   alert("Bejelentés törölve.");
 }
 
-function reportCardHtml(report) {
+function reportCardHtml(report, options = {}) {
+  const { includeDescription = true, includeDetailButton = false } = options;
   const imageUrls = getImageUrls(report.image_url);
+  const descriptionRow = includeDescription
+    ? `<strong>Leírás:</strong> ${report.leiras || "-"}<br>`
+    : "";
+  const detailButton = includeDetailButton
+    ? `<button type="button" class="report-details-btn" data-focus-report="${report.id}">Részletek</button>`
+    : "";
 
   return `
     <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${typeToLabel[report.tipus] || report.tipus}</strong> – ${report.kategoria}<br>
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
-    <strong>Leírás:</strong> ${report.leiras || "-"}<br>
+    ${descriptionRow}
+    ${detailButton}
   `;
 }
 
