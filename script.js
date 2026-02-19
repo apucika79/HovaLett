@@ -80,7 +80,7 @@ function createDefaultMarkerIcon(colorHex) {
 const greenDefaultIcon = createDefaultMarkerIcon("#2e7d32");
 const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 
-const MAX_DESCRIPTION_LENGTH = 500;
+const MAX_DESCRIPTION_LENGTH = 150;
 const MIN_MARKER_DISTANCE_METERS = 12;
 const MAX_UPLOAD_IMAGES = 3;
 
