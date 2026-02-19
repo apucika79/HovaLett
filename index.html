@@ -75,7 +75,7 @@
       <label for="photoInput">Kép feltöltése</label>
       <input type="file" id="photoInput" accept="image/*" /><br><br>
       <label for="descriptionInput">Leírás</label>
-      <textarea id="descriptionInput" rows="4" cols="40" placeholder="Leírás..."></textarea><br><br>
+      <textarea id="descriptionInput" rows="4" cols="40" maxlength="500" placeholder="Leírás... (max. 500 karakter)"></textarea><br><br>
       <label for="contactInput">Elérhetőség (opcionális)</label>
       <input type="text" id="contactInput" placeholder="Elérhetőség (opcionális)" /><br><br>
       <div id="járatBox" class="hidden">
@@ -184,7 +184,7 @@
         <label for="manageReportTitleInput">Cím</label>
         <input id="manageReportTitleInput" type="text" placeholder="Pl. Járat: 7-es" />
         <label for="manageReportDescInput">Leírás</label>
-        <textarea id="manageReportDescInput" rows="4" placeholder="Leírás módosítása..."></textarea>
+        <textarea id="manageReportDescInput" rows="4" maxlength="500" placeholder="Leírás módosítása... (max. 500 karakter)"></textarea>
         <div class="modal-actions">
           <button id="saveManageChangesBtn" class="modal-primary-btn" type="button">Módosítás mentése</button>
           <button id="deleteReportBtn" class="danger-btn" type="button">Törlés</button>

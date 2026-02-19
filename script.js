@@ -77,6 +77,8 @@ function createDefaultMarkerIcon(colorHex) {
 const greenDefaultIcon = createDefaultMarkerIcon("#2e7d32");
 const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 
+const MAX_DESCRIPTION_LENGTH = 500;
+
 const map = L.map("map").setView([47.4979, 19.0402], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
 
@@ -299,7 +301,7 @@ function closeManageReportModal() {
 async function handleSaveReportChanges() {
   if (!selectedOwnReport || !supabaseClient || !state.user) return;
   const newTitle = el.manageReportTitleInput.value.trim();
-  const newDesc = el.manageReportDescInput.value.trim();
+  const newDesc = el.manageReportDescInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH);
 
   const { error } = await supabaseClient
     .from("bejelentesek")
@@ -845,7 +847,7 @@ async function saveReport() {
     tipus: typeFromSelection(),
     kategoria: normalizeCategory(state.selectedCategory),
     cim: state.pendingLocationType === "jarmu" ? `Járat: ${el.routeInput.value || "n/a"}` : "Utcán/épületben",
-    leiras: el.descriptionInput.value,
+    leiras: el.descriptionInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH),
     lat: state.pendingCoords.lat,
     lng: state.pendingCoords.lng,
     created_at: (state.reportDateTime || new Date()).toISOString(),
