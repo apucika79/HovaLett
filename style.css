@@ -225,3 +225,25 @@ button {
 
 #sendFirstMessageBtn { background-color: #4CAF50; }
 #cancelFirstMessageBtn { background-color: #757575; }
+
+#datumModal .modal-content {
+  max-width: 520px;
+}
+
+.date-time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.date-time-row label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.day-label {
+  margin: 14px 0 0;
+}
