@@ -26,6 +26,7 @@ const state = {
   reportDateTime: null,
   currentReportForMessage: null,
   supabaseOnline: false,
+  viewMode: "home",
 };
 
 const typeToLabel = {
@@ -163,9 +164,18 @@ function isReportVisible(report) {
   return state.activeTypes.has(report.tipus) && state.activeCategories.has(normalizeCategory(report.kategoria));
 }
 
+function getReportsForCurrentView() {
+  if (state.viewMode === "myReports") {
+    if (!state.user) return [];
+    return state.reports.filter((report) => report.user_id === state.user.id);
+  }
+
+  return state.reports.filter(isReportVisible);
+}
+
 function updateVisibleItems() {
   el.reportItems.innerHTML = "";
-  const visibleReports = state.reports.filter(isReportVisible);
+  const visibleReports = getReportsForCurrentView();
   visibleReports.forEach((report) => {
     const card = document.createElement("div");
     card.className = "report-card";
@@ -174,7 +184,9 @@ function updateVisibleItems() {
   });
 
   if (visibleReports.length === 0) {
-    el.reportItems.innerHTML = "<p>Nincs a szűrőknek megfelelő tárgy. Kapcsold be több kategóriát vagy típust.</p>";
+    el.reportItems.innerHTML = state.viewMode === "myReports"
+      ? "<p>Még nincs saját bejelentésed.</p>"
+      : "<p>Nincs a szűrőknek megfelelő tárgy. Kapcsold be több kategóriát vagy típust.</p>";
   }
 }
 
@@ -203,7 +215,7 @@ function clearMarkers() {
 
 function renderMapMarkers() {
   clearMarkers();
-  state.reports.filter(isReportVisible).forEach((report) => {
+  getReportsForCurrentView().forEach((report) => {
     if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return;
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
@@ -304,9 +316,32 @@ function showProfile() {
 }
 
 function showHome() {
+  state.viewMode = "home";
+  const reportPanelTitle = document.getElementById("reportPanelTitle");
+  if (reportPanelTitle) reportPanelTitle.textContent = "Legfrissebb jelentések";
   el.profileView.classList.add("hidden");
   el.mainContainer.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
+  updateVisibleItems();
+  renderMapMarkers();
+}
+
+function showMyReports() {
+  if (!state.user) {
+    renderAuthModal("choice");
+    el.modal.classList.remove("hidden");
+    el.modal.classList.add("show");
+    return;
+  }
+
+  state.viewMode = "myReports";
+  const reportPanelTitle = document.getElementById("reportPanelTitle");
+  if (reportPanelTitle) reportPanelTitle.textContent = "Legfrissebb jelentéseim";
+  el.profileView.classList.add("hidden");
+  el.mainContainer.classList.remove("hidden");
+  el.bejelentesBox.classList.add("hidden");
+  updateVisibleItems();
+  renderMapMarkers();
 }
 
 async function uploadImageIfAny(file) {
@@ -654,7 +689,7 @@ function bindMenu() {
   });
 
   el.homeBtn.addEventListener("click", showHome);
-  el.myReportsBtn.addEventListener("click", showProfile);
+  el.myReportsBtn.addEventListener("click", showMyReports);
   el.myMessagesBtn.addEventListener("click", showProfile);
 
   el.sendFirstMessageBtn.addEventListener("click", sendMessageFromModal);
