@@ -165,7 +165,7 @@ function isMarkerInteractionTarget(target) {
 
 function focusReportOnMap(reportId) {
   const marker = markerByReportId.get(reportId);
-  if (!marker) return;
+  if (!marker) return false;
 
   if (state.reportFocus.marker && state.reportFocus.reportId !== reportId) {
     const oldMarkerElement = state.reportFocus.marker.getElement?.();
@@ -183,6 +183,8 @@ function focusReportOnMap(reportId) {
 
   const markerElement = marker.getElement?.();
   if (markerElement) markerElement.classList.add("is-pulsing-marker");
+
+  return true;
 }
 
 function setInfo(text) {
@@ -263,7 +265,10 @@ function updateVisibleItems() {
       card.addEventListener("click", () => openManageReportModal(report));
     } else if (isHomeView) {
       const detailBtn = card.querySelector("[data-focus-report]");
-      detailBtn?.addEventListener("click", () => focusReportOnMap(report.id));
+      detailBtn?.addEventListener("click", () => {
+        focusReportOnMap(report.id);
+        openReportDetailModal(report);
+      });
     }
     el.reportItems.appendChild(card);
   });
