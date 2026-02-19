@@ -299,12 +299,13 @@ button {
 .image-stage {
   height: 65vh;
   max-height: 680px;
-  overflow: auto;
+  overflow: hidden;
   border-radius: 10px;
   background: #111;
   display: flex;
   justify-content: center;
   align-items: center;
+  touch-action: none;
 }
 
 #imageViewerImg {
@@ -313,6 +314,8 @@ button {
   object-fit: contain;
   transform-origin: center;
   transition: transform 0.15s ease;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .image-nav-btn {
