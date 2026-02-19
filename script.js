@@ -474,6 +474,16 @@ function initFilters() {
 }
 
 function initReportFlow() {
+  const advanceToReportForm = () => {
+    el.helyModal.classList.add("hidden");
+    el.helyModal.classList.remove("show");
+    el.bejelentesBox.classList.remove("hidden");
+    el.markerForm.classList.remove("hidden");
+    el.markerForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (state.pendingLocationType === "jarmu") el.routeBox.classList.remove("hidden");
+    else el.routeBox.classList.add("hidden");
+  };
+
   el.foundBtn.addEventListener("click", () => {
     if (!state.user) {
       renderAuthModal("choice");
@@ -538,9 +548,7 @@ function initReportFlow() {
     }
     state.pendingMarker = L.marker(e.latlng).addTo(map);
     state.pendingMarker.bindPopup("Kijelölt hely").openPopup();
-    el.markerForm.classList.remove("hidden");
-    if (state.pendingLocationType === "jarmu") el.routeBox.classList.remove("hidden");
-    else el.routeBox.classList.add("hidden");
+    advanceToReportForm();
   });
 
   document.getElementById("saveBtn").addEventListener("click", saveReport);
