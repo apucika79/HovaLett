@@ -131,6 +131,7 @@ button {
   width: min(86vw, 460px);
   max-height: min(78vh, 620px);
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
 }
 
@@ -141,6 +142,7 @@ button {
 #reportDetailBody {
   display: flex;
   justify-content: center;
+  min-width: 0;
 }
 
 .popup-image-ribbon {
@@ -200,6 +202,8 @@ button {
 .marker-popup-content {
   width: 100%;
   text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 #reportDetailBody .report-card {
