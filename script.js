@@ -753,6 +753,14 @@ function adjustDroppedMarkerPosition(latlng) {
   return adjustedLatLng;
 }
 
+function setPendingMarkerAt(latlng) {
+  const markerLatLng = L.latLng(latlng.lat, latlng.lng);
+  state.pendingCoords = markerLatLng;
+  if (state.pendingMarker) map.removeLayer(state.pendingMarker);
+  state.pendingMarker = L.marker(markerLatLng).addTo(map);
+  state.pendingMarker.bindPopup("Kijelölt hely").openPopup();
+}
+
 function renderMapMarkers() {
   clearMarkers();
   getReportsForCurrentView().forEach((report) => {
@@ -760,7 +768,10 @@ function renderMapMarkers() {
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.on("click", () => {
-      if (state.isPlacingMarker) return;
+      if (state.isPlacingMarker) {
+        setPendingMarkerAt(marker.getLatLng());
+        return;
+      }
       if (state.reportFocus.reportId && state.reportFocus.reportId !== report.id) return;
       openReportDetailModal(report);
     });
@@ -924,14 +935,16 @@ async function saveReport() {
     return;
   }
 
+  const savedCoords = adjustDroppedMarkerPosition(state.pendingCoords);
+
   const payload = {
     user_id: state.user.id,
     tipus: typeFromSelection(),
     kategoria: normalizeCategory(state.selectedCategory),
     cim: state.pendingLocationType === "jarmu" ? `Járat: ${el.routeInput.value || "n/a"}` : "Utcán/épületben",
     leiras: el.descriptionInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH),
-    lat: state.pendingCoords.lat,
-    lng: state.pendingCoords.lng,
+    lat: savedCoords.lat,
+    lng: savedCoords.lng,
     created_at: (state.reportDateTime || new Date()).toISOString(),
     image_url: imageUrl,
     status: "aktiv",
@@ -1163,13 +1176,7 @@ function initReportFlow() {
     if (isMarkerInteractionTarget(e.originalEvent?.target)) return;
     stopFocusedReportJump();
     if (!state.user || !state.reportType || !state.selectedCategory) return;
-    const adjustedLatLng = adjustDroppedMarkerPosition(e.latlng);
-    state.pendingCoords = adjustedLatLng;
-    if (state.pendingMarker) {
-      map.removeLayer(state.pendingMarker);
-    }
-    state.pendingMarker = L.marker(adjustedLatLng).addTo(map);
-    state.pendingMarker.bindPopup("Kijelölt hely").openPopup();
+    setPendingMarkerAt(e.latlng);
     advanceToReportForm();
   });
 
