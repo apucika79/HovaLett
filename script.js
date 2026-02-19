@@ -181,7 +181,9 @@ function focusReportOnMap(reportId) {
     zoom: map.getZoom(),
   };
 
-  map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16), { duration: 0.6 });
+  const maxZoom = Number.isFinite(map.getMaxZoom()) ? map.getMaxZoom() : 19;
+  const targetZoom = Math.min(maxZoom, Math.max(map.getZoom() + 2, 17));
+  map.flyTo(marker.getLatLng(), targetZoom, { duration: 0.6 });
 
   const markerElement = marker.getElement?.();
   if (markerElement) markerElement.classList.add("is-pulsing-marker");
