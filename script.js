@@ -27,60 +27,6 @@ const state = {
   supabaseOnline: false,
 };
 
-function createDemoReports() {
-  const now = Date.now();
-  return [
-    {
-      id: "demo-1",
-      user_id: "demo-user-1",
-      tipus: "talalt",
-      kategoria: "Telefon -és Kiegészítők",
-      cim: "Utcán/épületben",
-      leiras: "Fekete telefontokkal együtt talált iPhone.",
-      lat: 47.4972,
-      lng: 19.0433,
-      created_at: new Date(now - 1000 * 60 * 45).toISOString(),
-      image_url: null,
-    },
-    {
-      id: "demo-2",
-      user_id: "demo-user-2",
-      tipus: "keresett",
-      kategoria: "Kulcs",
-      cim: "Járat: 4-6 villamos",
-      leiras: "Autókulcs kék kulcstartóval.",
-      lat: 47.5084,
-      lng: 19.0538,
-      created_at: new Date(now - 1000 * 60 * 95).toISOString(),
-      image_url: null,
-    },
-    {
-      id: "demo-3",
-      user_id: "demo-user-3",
-      tipus: "talalt",
-      kategoria: "Pénz, Pénztárca",
-      cim: "Utcán/épületben",
-      leiras: "Barna bőr pénztárca igazolvány nélkül.",
-      lat: 47.4918,
-      lng: 19.0366,
-      created_at: new Date(now - 1000 * 60 * 170).toISOString(),
-      image_url: null,
-    },
-    {
-      id: "demo-4",
-      user_id: "demo-user-4",
-      tipus: "keresett",
-      kategoria: "Okmányok",
-      cim: "Utcán/épületben",
-      leiras: "Diákigazolványt keresek, névre szóló.",
-      lat: 47.5039,
-      lng: 19.0314,
-      created_at: new Date(now - 1000 * 60 * 240).toISOString(),
-      image_url: null,
-    },
-  ];
-}
-
 const typeToLabel = {
   talalt: "Talált",
   keresett: "Keresett",
@@ -272,17 +218,23 @@ async function checkSupabaseConnection() {
 
 async function loadReports() {
   if (!state.supabaseOnline) {
-    state.reports = createDemoReports().map(normalizeReport);
-    setInfo("Supabase offline: demó bejelentések megjelenítve.");
+    state.reports = [];
+    setInfo("Supabase kapcsolat hiba: csak éles adatbázisból töltünk. Ellenőrizd az RLS policy-ket és a táblákat.");
     updateVisibleItems();
     renderMapMarkers();
     return;
   }
   const { data, error } = await supabaseClient.from("bejelentesek").select("*").order("created_at", { ascending: false });
-  if (error) return;
-  state.reports = ((data && data.length > 0) ? data : createDemoReports()).map(normalizeReport);
+  if (error) {
+    setInfo(`Bejelentések betöltése sikertelen: ${error.message}`);
+    state.reports = [];
+    updateVisibleItems();
+    renderMapMarkers();
+    return;
+  }
+  state.reports = (data || []).map(normalizeReport);
   if (!data || data.length === 0) {
-    setInfo("Nincs még adatbázis bejegyzés: demó bejelentések megjelenítve.");
+    setInfo("Nincs még éles bejelentés az adatbázisban.");
   }
   updateVisibleItems();
   renderMapMarkers();
@@ -354,9 +306,13 @@ async function uploadImageIfAny(file) {
 
 async function saveReport() {
   if (!supabaseClient) return alert("Supabase nincs beállítva.");
+  if (!state.supabaseOnline) return alert("A Supabase kapcsolat nem működik, így az éles bejelentés most nem menthető.");
   if (!state.user) return alert("Bejelentkezés szükséges.");
   if (!state.pendingCoords) return alert("Előbb jelöld a helyet a térképen.");
   if (!state.selectedCategory) return alert("Válassz kategóriát.");
+  if (state.pendingLocationType === "jarmu" && !el.routeInput.value.trim()) {
+    return alert("Járművön történt esetnél add meg a járatszámot.");
+  }
 
   let imageUrl = null;
   try {
@@ -379,7 +335,7 @@ async function saveReport() {
   };
 
   const { error } = await supabaseClient.from("bejelentesek").insert([payload]);
-  if (error) return alert("Mentési hiba. Ellenőrizd a Supabase táblát/RLS-t.");
+  if (error) return alert(`Mentési hiba: ${error.message}`);
 
   resetReportFlow();
   await loadReports();
