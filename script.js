@@ -41,6 +41,7 @@ const state = {
   },
   isPlacingMarker: false,
   isReportFlowActive: false,
+  selectedUploadFiles: [],
 };
 
 const typeToLabel = {
@@ -236,6 +237,8 @@ function resetReportFlow() {
   el.descriptionInput.value = "";
   el.contactInput.value = "";
   el.photoInput.value = "";
+  state.selectedUploadFiles = [];
+  el.photoInputHelp.textContent = `Maximum ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`;
   el.routeBox.classList.add("hidden");
   el.markerForm.classList.add("hidden");
   el.bejelentesBox.classList.add("hidden");
@@ -925,20 +928,35 @@ function enforceImageSelectionLimit() {
   const files = Array.from(el.photoInput.files || []);
 
   if (!files.length) {
-    el.photoInputHelp.textContent = `Maximum ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`;
+    if (!state.selectedUploadFiles.length) {
+      el.photoInputHelp.textContent = `Maximum ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`;
+    }
     return;
   }
 
-  if (files.length > MAX_UPLOAD_IMAGES) {
-    const dataTransfer = new DataTransfer();
-    files.slice(0, MAX_UPLOAD_IMAGES).forEach((file) => dataTransfer.items.add(file));
-    el.photoInput.files = dataTransfer.files;
+  const mergedFiles = [...state.selectedUploadFiles];
+  files.forEach((file) => {
+    const exists = mergedFiles.some((savedFile) => savedFile.name === file.name
+      && savedFile.size === file.size
+      && savedFile.lastModified === file.lastModified
+      && savedFile.type === file.type);
+    if (!exists) mergedFiles.push(file);
+  });
+
+  const limitedFiles = mergedFiles.slice(0, MAX_UPLOAD_IMAGES);
+  state.selectedUploadFiles = limitedFiles;
+
+  const dataTransfer = new DataTransfer();
+  limitedFiles.forEach((file) => dataTransfer.items.add(file));
+  el.photoInput.files = dataTransfer.files;
+
+  if (mergedFiles.length > MAX_UPLOAD_IMAGES) {
     el.photoInputHelp.textContent = `Csak ${MAX_UPLOAD_IMAGES} kép menthető. Az első ${MAX_UPLOAD_IMAGES} kép maradt kiválasztva.`;
     alert(`Legfeljebb ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`);
     return;
   }
 
-  el.photoInputHelp.textContent = `${files.length}/${MAX_UPLOAD_IMAGES} kép kiválasztva.`;
+  el.photoInputHelp.textContent = `${limitedFiles.length}/${MAX_UPLOAD_IMAGES} kép kiválasztva.`;
 }
 
 async function uploadImagesIfAny(files) {
@@ -965,7 +983,7 @@ async function saveReport() {
 
   let imageUrls = [];
   try {
-    imageUrls = await uploadImagesIfAny(el.photoInput.files);
+    imageUrls = await uploadImagesIfAny(state.selectedUploadFiles);
   } catch (err) {
     alert(err.message || "Kép feltöltési hiba.");
     return;
