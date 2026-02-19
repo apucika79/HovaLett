@@ -39,6 +39,7 @@ const state = {
     marker: null,
     previousView: null,
   },
+  isPlacingMarker: false,
 };
 
 const typeToLabel = {
@@ -152,10 +153,16 @@ function syncFocusedMarkerState() {
 
     const isFocusedMarker = state.reportFocus.reportId === reportId;
     const hasFocusedMarker = Boolean(state.reportFocus.reportId);
+    const shouldMuteMarker = state.isPlacingMarker || (hasFocusedMarker && !isFocusedMarker);
 
     markerElement.classList.toggle("is-pulsing-marker", isFocusedMarker);
-    markerElement.classList.toggle("is-muted-marker", hasFocusedMarker && !isFocusedMarker);
+    markerElement.classList.toggle("is-muted-marker", shouldMuteMarker);
   });
+}
+
+function setMarkerPlacementMode(enabled) {
+  state.isPlacingMarker = Boolean(enabled);
+  syncFocusedMarkerState();
 }
 
 function stopFocusedReportJump() {
@@ -210,6 +217,7 @@ function hideFlowModals() {
 }
 
 function resetReportFlow() {
+  setMarkerPlacementMode(false);
   state.pendingCoords = null;
   if (state.pendingMarker) {
     map.removeLayer(state.pendingMarker);
@@ -752,6 +760,7 @@ function renderMapMarkers() {
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.on("click", () => {
+      if (state.isPlacingMarker) return;
       if (state.reportFocus.reportId && state.reportFocus.reportId !== report.id) return;
       openReportDetailModal(report);
     });
@@ -1082,6 +1091,7 @@ function initFilters() {
 
 function initReportFlow() {
   const advanceToReportForm = () => {
+    setMarkerPlacementMode(false);
     el.helyModal.classList.add("hidden");
     el.helyModal.classList.remove("show");
     el.bejelentesBox.classList.remove("hidden");
@@ -1141,10 +1151,12 @@ function initReportFlow() {
   document.getElementById("datumModalOkBtn").addEventListener("click", () => {
     el.datumModal.classList.add("hidden");
     el.helyModal.classList.remove("hidden");
+    setMarkerPlacementMode(true);
   });
 
   document.getElementById("helyModalOkBtn").addEventListener("click", () => {
     el.helyModal.classList.add("hidden");
+    setMarkerPlacementMode(true);
   });
 
   map.on("click", (e) => {
@@ -1175,6 +1187,7 @@ function initReportFlow() {
     el.valasztoModal.classList.remove("hidden");
   });
   document.getElementById("helyBackBtn").addEventListener("click", () => {
+    setMarkerPlacementMode(false);
     el.helyModal.classList.add("hidden");
     el.datumModal.classList.remove("hidden");
   });
