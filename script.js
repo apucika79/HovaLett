@@ -31,6 +31,8 @@ const state = {
     urls: [],
     index: 0,
     zoom: 1,
+    offsetX: 0,
+    offsetY: 0,
   },
 };
 
@@ -121,6 +123,7 @@ const el = {
   saveManageChangesBtn: document.getElementById("saveManageChangesBtn"),
   deleteReportBtn: document.getElementById("deleteReportBtn"),
   imageViewerModal: document.getElementById("imageViewerModal"),
+  imageStage: document.getElementById("imageStage"),
   imageViewerImg: document.getElementById("imageViewerImg"),
   imageCounter: document.getElementById("imageCounter"),
   imagePrevBtn: document.getElementById("imagePrevBtn"),
@@ -318,14 +321,52 @@ function closeImageViewer() {
 }
 
 function renderImageViewer() {
-  const { urls, index, zoom } = state.imageViewer;
+  const { urls, index, zoom, offsetX, offsetY } = state.imageViewer;
   if (!urls.length) return;
 
   el.imageViewerImg.src = urls[index];
-  el.imageViewerImg.style.transform = `scale(${zoom})`;
+  el.imageViewerImg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
   el.imageCounter.textContent = `${index + 1} / ${urls.length}`;
   el.imagePrevBtn.disabled = urls.length <= 1;
   el.imageNextBtn.disabled = urls.length <= 1;
+}
+
+function clampImageOffset() {
+  const stageRect = el.imageStage.getBoundingClientRect();
+  const imageRect = el.imageViewerImg.getBoundingClientRect();
+  const zoom = state.imageViewer.zoom;
+  if (!stageRect.width || !stageRect.height || !imageRect.width || !imageRect.height) return;
+
+  const naturalWidth = imageRect.width / zoom;
+  const naturalHeight = imageRect.height / zoom;
+  const scaledWidth = naturalWidth * zoom;
+  const scaledHeight = naturalHeight * zoom;
+  const maxOffsetX = Math.max((scaledWidth - stageRect.width) / 2, 0);
+  const maxOffsetY = Math.max((scaledHeight - stageRect.height) / 2, 0);
+
+  state.imageViewer.offsetX = Math.min(maxOffsetX, Math.max(-maxOffsetX, state.imageViewer.offsetX));
+  state.imageViewer.offsetY = Math.min(maxOffsetY, Math.max(-maxOffsetY, state.imageViewer.offsetY));
+}
+
+function setImageZoom(nextZoom, center = null) {
+  const previousZoom = state.imageViewer.zoom;
+  const clampedZoom = Math.min(3, Math.max(1, nextZoom));
+  if (Math.abs(clampedZoom - previousZoom) < 0.001) return;
+
+  if (center && previousZoom > 0) {
+    const ratio = clampedZoom / previousZoom;
+    state.imageViewer.offsetX = (state.imageViewer.offsetX - center.x) * ratio + center.x;
+    state.imageViewer.offsetY = (state.imageViewer.offsetY - center.y) * ratio + center.y;
+  }
+
+  state.imageViewer.zoom = clampedZoom;
+  if (clampedZoom <= 1) {
+    state.imageViewer.offsetX = 0;
+    state.imageViewer.offsetY = 0;
+  }
+
+  clampImageOffset();
+  renderImageViewer();
 }
 
 function openImageViewer(urls, startIndex = 0) {
@@ -333,6 +374,8 @@ function openImageViewer(urls, startIndex = 0) {
   state.imageViewer.urls = urls;
   state.imageViewer.index = startIndex;
   state.imageViewer.zoom = 1;
+  state.imageViewer.offsetX = 0;
+  state.imageViewer.offsetY = 0;
   renderImageViewer();
   el.imageViewerModal.classList.remove("hidden");
 }
@@ -362,6 +405,8 @@ function setupImageViewerEvents() {
     if (urls.length <= 1) return;
     state.imageViewer.index = (index - 1 + urls.length) % urls.length;
     state.imageViewer.zoom = 1;
+    state.imageViewer.offsetX = 0;
+    state.imageViewer.offsetY = 0;
     renderImageViewer();
   });
 
@@ -370,25 +415,99 @@ function setupImageViewerEvents() {
     if (urls.length <= 1) return;
     state.imageViewer.index = (index + 1) % urls.length;
     state.imageViewer.zoom = 1;
+    state.imageViewer.offsetX = 0;
+    state.imageViewer.offsetY = 0;
     renderImageViewer();
   });
 
   el.zoomInBtn.addEventListener("click", () => {
-    state.imageViewer.zoom = Math.min(state.imageViewer.zoom + 0.25, 3);
-    renderImageViewer();
+    setImageZoom(state.imageViewer.zoom + 0.25);
   });
 
   el.zoomOutBtn.addEventListener("click", () => {
-    state.imageViewer.zoom = Math.max(state.imageViewer.zoom - 0.25, 1);
-    renderImageViewer();
+    setImageZoom(state.imageViewer.zoom - 0.25);
   });
 
   el.imageViewerImg.addEventListener("wheel", (event) => {
     event.preventDefault();
     const direction = event.deltaY < 0 ? 0.2 : -0.2;
-    state.imageViewer.zoom = Math.min(3, Math.max(1, state.imageViewer.zoom + direction));
-    renderImageViewer();
+    const stageRect = el.imageStage.getBoundingClientRect();
+    setImageZoom(state.imageViewer.zoom + direction, {
+      x: event.clientX - stageRect.left - stageRect.width / 2,
+      y: event.clientY - stageRect.top - stageRect.height / 2,
+    });
   });
+
+  const activePointers = new Map();
+  let lastPanPoint = null;
+  let pinchDistance = 0;
+  let pinchZoomStart = 1;
+
+  function pointerCenterOffset() {
+    const points = [...activePointers.values()];
+    const centerX = (points[0].clientX + points[1].clientX) / 2;
+    const centerY = (points[0].clientY + points[1].clientY) / 2;
+    const stageRect = el.imageStage.getBoundingClientRect();
+    return {
+      x: centerX - stageRect.left - stageRect.width / 2,
+      y: centerY - stageRect.top - stageRect.height / 2,
+    };
+  }
+
+  function pointerDistance() {
+    const points = [...activePointers.values()];
+    return Math.hypot(points[0].clientX - points[1].clientX, points[0].clientY - points[1].clientY);
+  }
+
+  el.imageStage.addEventListener("pointerdown", (event) => {
+    el.imageStage.setPointerCapture(event.pointerId);
+    activePointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+
+    if (activePointers.size === 1) {
+      lastPanPoint = { x: event.clientX, y: event.clientY };
+    }
+
+    if (activePointers.size === 2) {
+      pinchDistance = pointerDistance();
+      pinchZoomStart = state.imageViewer.zoom;
+      lastPanPoint = null;
+    }
+  });
+
+  el.imageStage.addEventListener("pointermove", (event) => {
+    if (!activePointers.has(event.pointerId)) return;
+    activePointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+
+    if (activePointers.size === 2) {
+      const distance = pointerDistance();
+      if (pinchDistance > 0) {
+        setImageZoom((distance / pinchDistance) * pinchZoomStart, pointerCenterOffset());
+      }
+      return;
+    }
+
+    if (activePointers.size === 1 && state.imageViewer.zoom > 1 && lastPanPoint) {
+      state.imageViewer.offsetX += event.clientX - lastPanPoint.x;
+      state.imageViewer.offsetY += event.clientY - lastPanPoint.y;
+      lastPanPoint = { x: event.clientX, y: event.clientY };
+      clampImageOffset();
+      renderImageViewer();
+    }
+  });
+
+  function clearPointer(event) {
+    activePointers.delete(event.pointerId);
+    if (activePointers.size === 1) {
+      const remaining = [...activePointers.values()][0];
+      lastPanPoint = { x: remaining.clientX, y: remaining.clientY };
+    } else {
+      lastPanPoint = null;
+      pinchDistance = 0;
+    }
+  }
+
+  el.imageStage.addEventListener("pointerup", clearPointer);
+  el.imageStage.addEventListener("pointercancel", clearPointer);
 }
 
 function markerPopupHtml(report) {
