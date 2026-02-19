@@ -348,12 +348,18 @@ function updateVisibleItems() {
     card.innerHTML = reportCardHtml(report, {
       includeDescription: !isHomeLikeView,
       includeDetailButton: isHomeLikeView,
+      includeManageButton: state.viewMode === "myReports",
     });
     if (isHomeLikeView) {
       const detailBtn = card.querySelector("[data-focus-report]");
       detailBtn?.addEventListener("click", () => {
         focusReportOnMap(report.id);
         openReportDetailModal(report);
+      });
+
+      const manageBtn = card.querySelector("[data-manage-report]");
+      manageBtn?.addEventListener("click", () => {
+        openManageReportModal(report);
       });
     }
     el.reportItems.appendChild(card);
@@ -427,13 +433,16 @@ async function handleDeleteReport() {
 }
 
 function reportCardHtml(report, options = {}) {
-  const { includeDescription = true, includeDetailButton = false } = options;
+  const { includeDescription = true, includeDetailButton = false, includeManageButton = false } = options;
   const imageUrls = getImageUrls(report.image_url);
   const descriptionRow = includeDescription
     ? `<strong>Leírás:</strong> ${report.leiras || "-"}<br>`
     : "";
   const detailButton = includeDetailButton
     ? `<button type="button" class="report-details-btn" data-focus-report="${report.id}">Részletek</button>`
+    : "";
+  const manageButton = includeManageButton
+    ? `<button type="button" class="report-details-btn" data-manage-report="${report.id}">Kezelés</button>`
     : "";
 
   return `
@@ -442,7 +451,7 @@ function reportCardHtml(report, options = {}) {
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
     ${descriptionRow}
-    ${detailButton}
+    ${detailButton}${detailButton && manageButton ? " " : ""}${manageButton}
   `;
 }
 
@@ -908,7 +917,7 @@ async function refreshProfileData() {
 
   const normalizedMyReports = generateUniqueDisplayCodes((myReports || []).map(normalizeReport));
   el.myReportsList.innerHTML = normalizedMyReports
-    .map((report) => `<div class="report-card">${reportCardHtml(report, { includeDetailButton: true })}</div>`)
+    .map((report) => `<div class="report-card">${reportCardHtml(report, { includeDetailButton: true, includeManageButton: true })}</div>`)
     .join("") || "<p>Nincs saját bejelentés.</p>";
 
   el.myReportsList.querySelectorAll("[data-focus-report]").forEach((btn) => {
@@ -920,6 +929,16 @@ async function refreshProfileData() {
       showMyReports();
       focusReportOnMap(reportId);
       openReportDetailModal(selectedReport);
+    });
+  });
+
+  el.myReportsList.querySelectorAll("[data-manage-report]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const reportId = Number(btn.dataset.manageReport);
+      const selectedReport = normalizedMyReports.find((report) => report.id === reportId);
+      if (!selectedReport) return;
+
+      openManageReportModal(selectedReport);
     });
   });
 
