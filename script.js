@@ -451,9 +451,6 @@ function setupImageViewerEvents() {
   el.imageViewerCloseBtn.addEventListener("click", closeImageViewer);
 
   el.reportDetailCloseBtn.addEventListener("click", closeReportDetailModal);
-  el.reportDetailModal.addEventListener("click", (event) => {
-    if (event.target === el.reportDetailModal) closeReportDetailModal();
-  });
   el.imageViewerModal.addEventListener("click", (event) => {
     if (event.target === el.imageViewerModal) closeImageViewer();
   });
