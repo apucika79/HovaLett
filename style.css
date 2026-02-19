@@ -100,6 +100,85 @@ button {
 .claim-btn { background-color: #4CAF50; padding: 6px 12px; margin-top: 10px; font-size: 13px; }
 .leaflet-popup-content { font-size: 14px; text-align: left; margin: 8px 0; }
 
+.leaflet-popup.marker-detail-popup .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+}
+
+.leaflet-popup.marker-detail-popup .leaflet-popup-content {
+  width: min(78vw, 500px) !important;
+  margin: 0;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.marker-popup-content {
+  position: relative;
+  padding-top: 6px;
+}
+
+.popup-close-btn {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin: 0;
+  padding: 0;
+  background: #607d8b;
+}
+
+.popup-image-ribbon {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.popup-thumb-btn {
+  flex: 0 0 auto;
+  width: 94px;
+  height: 72px;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: transparent;
+}
+
+.popup-thumb-btn:hover {
+  border-color: #42a5f5;
+}
+
+.popup-thumb-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.popup-no-image {
+  margin: 12px 0 0;
+  color: #607d8b;
+}
+
+.popup-action-row {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.popup-action-btn {
+  margin: 0;
+}
+
+.popup-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .modal {
   position: fixed;
   top: 0; left: 0;

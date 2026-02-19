@@ -39,6 +39,10 @@ const state = {
     marker: null,
     previousView: null,
   },
+  popupState: {
+    marker: null,
+    previousView: null,
+  },
 };
 
 const typeToLabel = {
@@ -551,11 +555,25 @@ function setupImageViewerEvents() {
 }
 
 function markerPopupHtml(report) {
-  const msgButton = state.user && state.user.id !== report.user_id
-    ? `<button class="claim-btn" data-message-report="${report.id}">Üzenetküldés</button>`
-    : "";
+  const imageUrls = getImageUrls(report.image_url);
+  const imageRibbon = imageUrls.length > 0
+    ? `<div class="popup-image-ribbon">${imageUrls.map((url, index) => `<button class="popup-thumb-btn" data-popup-image-report="${report.id}" data-image-index="${index}" type="button"><img src="${url}" alt="Bejelentés kép ${index + 1}"></button>`).join("")}</div>`
+    : "<p class=\"popup-no-image\">Ehhez a bejelentéshez nincs feltöltött kép.</p>";
 
-  return `${reportCardHtml(report)}${msgButton}`;
+  const closeButton = `<button class="popup-close-btn" data-popup-close="${report.id}" aria-label="Bezárás" type="button">✕</button>`;
+  const reportButton = `<button class="modal-secondary-btn popup-action-btn" data-report-issue="${report.id}" type="button">Jelentés</button>`;
+  const msgButton = state.user && state.user.id !== report.user_id
+    ? `<button class="claim-btn popup-action-btn" data-message-report="${report.id}" type="button">Üzenetküldés</button>`
+    : `<button class="claim-btn popup-action-btn" disabled type="button">Üzenetküldés</button>`;
+
+  return `
+    <div class="marker-popup-content">
+      ${closeButton}
+      ${reportCardHtml(report)}
+      ${imageRibbon}
+      <div class="popup-action-row">${reportButton}${msgButton}</div>
+    </div>
+  `;
 }
 
 function clearMarkers() {
@@ -571,10 +589,47 @@ function renderMapMarkers() {
     if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return;
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
-    marker.bindPopup(markerPopupHtml(report));
+    marker.bindPopup(markerPopupHtml(report), {
+      className: "marker-detail-popup",
+      closeButton: false,
+      maxWidth: 520,
+      minWidth: 440,
+      autoPanPadding: [40, 40],
+    });
+    marker.on("click", () => {
+      state.popupState.marker = marker;
+      state.popupState.previousView = {
+        center: [map.getCenter().lat, map.getCenter().lng],
+        zoom: map.getZoom(),
+      };
+    });
     marker.on("popupopen", () => {
       const btn = document.querySelector(`[data-message-report=\"${report.id}\"]`);
       if (btn) btn.onclick = () => openFirstMessageModal(report);
+
+      const closeBtn = document.querySelector(`[data-popup-close=\"${report.id}\"]`);
+      if (closeBtn) closeBtn.onclick = () => marker.closePopup();
+
+      document.querySelectorAll(`[data-popup-image-report=\"${report.id}\"]`).forEach((thumbBtn) => {
+        thumbBtn.addEventListener("click", () => {
+          const imageUrls = getImageUrls(report.image_url);
+          openImageViewer(imageUrls, Number(thumbBtn.dataset.imageIndex || 0));
+        });
+      });
+
+      const reportIssueBtn = document.querySelector(`[data-report-issue=\"${report.id}\"]`);
+      if (reportIssueBtn) {
+        reportIssueBtn.onclick = () => {
+          const accepted = window.confirm("Szeretnéd jelenteni ezt a bejelentést? A funkció véglegesítése folyamatban van.");
+          if (accepted) alert("Köszönjük, a jelentésedet rögzítettük. Hamarosan véglegesítjük a teljes folyamatot.");
+        };
+      }
+    });
+    marker.on("popupclose", () => {
+      if (state.popupState.marker !== marker || !state.popupState.previousView) return;
+      map.setView(state.popupState.previousView.center, state.popupState.previousView.zoom, { animate: true });
+      state.popupState.marker = null;
+      state.popupState.previousView = null;
     });
     marker.addTo(map);
     state.markers.push(marker);
