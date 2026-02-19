@@ -112,6 +112,18 @@ button {
   padding: 0;
 }
 
+
+.valaszto-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.valaszto-buttons button {
+  width: 100%;
+  margin: 0;
+}
+
 .modal-actions {
   margin-top: 16px;
   display: flex;

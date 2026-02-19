@@ -103,6 +103,7 @@ const el = {
   messageBody: document.getElementById("messageBody"),
   sendFirstMessageBtn: document.getElementById("sendFirstMessageBtn"),
   cancelFirstMessageBtn: document.getElementById("cancelFirstMessageBtn"),
+  messageModalCloseBtn: document.getElementById("messageModalCloseBtn"),
 };
 
 function setInfo(text) {
@@ -367,23 +368,36 @@ async function saveReport() {
 function renderAuthModal(mode = "choice") {
   if (mode === "choice") {
     el.modalContent.innerHTML = `
+      <button class="modal-close-btn" data-auth-close="true" aria-label="Bezárás">✕</button>
       <p>Ehhez a művelethez regisztráció szükséges. Jelentkezz be vagy regisztrálj.</p>
-      <div class="modal-buttons">
-        <button id="loginBtn">Belépés</button>
-        <button id="registerBtn">Regisztráció</button>
+      <div class="modal-actions">
+        <button id="loginBtn" class="modal-primary-btn">Belépés</button>
+        <button id="registerBtn" class="modal-secondary-btn">Regisztráció</button>
       </div>`;
+    document.querySelector("[data-auth-close='true']").onclick = () => {
+      el.modal.classList.add("hidden");
+      el.modal.classList.remove("show");
+    };
     document.getElementById("loginBtn").onclick = () => renderAuthModal("login");
     document.getElementById("registerBtn").onclick = () => renderAuthModal("register");
     return;
   }
 
   el.modalContent.innerHTML = `
+    <button class="modal-close-btn" data-auth-close="true" aria-label="Bezárás">✕</button>
     <h3>${mode === "login" ? "Bejelentkezés" : "Regisztráció"}</h3>
     <input type="email" id="authEmail" placeholder="Email cím"><br><br>
     <input type="password" id="authPassword" placeholder="Jelszó"><br><br>
-    <button id="authSubmitBtn">${mode === "login" ? "Bejelentkezés" : "Regisztráció"}</button><br><br>
-    <button id="authBackBtn">Vissza</button>
+    <div class="modal-actions">
+      <button id="authBackBtn" class="modal-secondary-btn">Vissza</button>
+      <button id="authSubmitBtn" class="modal-primary-btn">${mode === "login" ? "Bejelentkezés" : "Regisztráció"}</button>
+    </div>
   `;
+
+  document.querySelector("[data-auth-close='true']").onclick = () => {
+    el.modal.classList.add("hidden");
+    el.modal.classList.remove("show");
+  };
 
   document.getElementById("authBackBtn").onclick = () => renderAuthModal("choice");
   document.getElementById("authSubmitBtn").onclick = async () => {
@@ -648,6 +662,7 @@ function bindMenu() {
 
   el.sendFirstMessageBtn.addEventListener("click", sendMessageFromModal);
   el.cancelFirstMessageBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));
+  el.messageModalCloseBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));
 }
 
 async function init() {

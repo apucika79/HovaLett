@@ -98,8 +98,8 @@
       <button class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <h3>Hol találtad vagy hol vesztetted el?</h3>
       <div class="valaszto-buttons">
-        <button id="modalUtcaBtn">📍 Utcán/Épületben</button>
-        <button id="modalJarmuBtn">🚍 Járművön</button>
+        <button id="modalUtcaBtn" class="modal-primary-btn">📍 Utcán/Épületben</button>
+        <button id="modalJarmuBtn" class="modal-primary-btn">🚍 Járművön</button>
       </div>
       <div class="modal-actions single-action">
         <button id="valasztoBackBtn" class="modal-secondary-btn">Vissza</button>
@@ -158,10 +158,13 @@
 
   <div id="messageModal" class="modal hidden">
     <div class="modal-content">
+      <button class="modal-close-btn" id="messageModalCloseBtn" aria-label="Bezárás">✕</button>
       <h3 id="messageModalTitle">Első kapcsolatfelvétel</h3>
-      <textarea id="messageBody" rows="5" placeholder="Írd ide az üzenetedet..."></textarea><br><br>
-      <button id="sendFirstMessageBtn">Küldés</button>
-      <button id="cancelFirstMessageBtn">Mégse</button>
+      <textarea id="messageBody" rows="5" placeholder="Írd ide az üzenetedet..."></textarea>
+      <div class="modal-actions">
+        <button id="cancelFirstMessageBtn" class="modal-secondary-btn">Mégse</button>
+        <button id="sendFirstMessageBtn" class="modal-primary-btn">Küldés</button>
+      </div>
     </div>
   </div>
 
