@@ -83,6 +83,8 @@ const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 const MAX_DESCRIPTION_LENGTH = 150;
 const MIN_MARKER_DISTANCE_METERS = 12;
 const MAX_UPLOAD_IMAGES = 3;
+const REPORT_CODE_DIGITS = 5;
+const REPORT_CODE_MAX_ATTEMPTS = 20;
 
 const map = L.map("map").setView([47.4979, 19.0402], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
@@ -252,6 +254,53 @@ function normalizeCategory(category) {
   return categoryMap[key] || key;
 }
 
+function getReportTypePrefix(tipus) {
+  return tipus === "talalt" ? "T" : "E";
+}
+
+function getCategoryPrefix(category) {
+  const normalized = String(normalizeCategory(category) || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+
+  const firstTwo = normalized.slice(0, 2);
+  return firstTwo.padEnd(2, "X");
+}
+
+function getRandomDigits(length) {
+  let buffer = "";
+  for (let i = 0; i < length; i += 1) {
+    buffer += Math.floor(Math.random() * 10);
+  }
+  return buffer;
+}
+
+async function generateUniqueReportCode(tipus, category) {
+  if (!supabaseClient) {
+    throw new Error("Supabase nincs beállítva, azonosító nem generálható.");
+  }
+
+  const codePrefix = `${getReportTypePrefix(tipus)}${getCategoryPrefix(category)}`;
+
+  for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
+    const candidate = `${codePrefix}${getRandomDigits(REPORT_CODE_DIGITS)}`;
+    const { count, error } = await supabaseClient
+      .from("bejelentesek")
+      .select("id", { head: true, count: "exact" })
+      .eq("report_code", candidate);
+
+    if (error) {
+      throw new Error(`Azonosító ellenőrzési hiba: ${error.message}`);
+    }
+
+    if (!count) return candidate;
+  }
+
+  throw new Error("Nem sikerült egyedi azonosítót generálni, próbáld újra.");
+}
+
 function normalizeReport(report) {
   const lat = Number(report.lat);
   const lng = Number(report.lng);
@@ -376,6 +425,7 @@ function reportCardHtml(report, options = {}) {
 
   return `
     <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${typeToLabel[report.tipus] || report.tipus}</strong> – ${report.kategoria}<br>
+    <strong>Azonosító:</strong> ${report.report_code || "-"}<br>
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
     ${descriptionRow}
@@ -988,10 +1038,18 @@ async function saveReport() {
   }
 
   const savedCoords = adjustDroppedMarkerPosition(state.pendingCoords);
+  let reportCode;
+  try {
+    reportCode = await generateUniqueReportCode(typeFromSelection(), state.selectedCategory);
+  } catch (err) {
+    alert(err.message || "Nem sikerült azonosítót generálni.");
+    return;
+  }
 
   const payload = {
     user_id: state.user.id,
     tipus: typeFromSelection(),
+    report_code: reportCode,
     kategoria: normalizeCategory(state.selectedCategory),
     cim: state.pendingLocationType === "jarmu" ? `Járat: ${el.routeInput.value || "n/a"}` : "Utcán/épületben",
     leiras: el.descriptionInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH),
