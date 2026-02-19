@@ -23,6 +23,7 @@ const state = {
   pendingCoords: null,
   pendingMarker: null,
   pendingLocationType: null,
+  reportDateTime: null,
   currentReportForMessage: null,
   supabaseOnline: false,
 };
@@ -125,6 +126,7 @@ function resetReportFlow() {
     state.pendingMarker = null;
   }
   state.pendingLocationType = null;
+  state.reportDateTime = null;
   state.selectedCategory = null;
   state.reportType = null;
   el.routeInput.value = "";
@@ -352,6 +354,7 @@ async function saveReport() {
     leiras: el.descriptionInput.value,
     lat: state.pendingCoords.lat,
     lng: state.pendingCoords.lng,
+    created_at: (state.reportDateTime || new Date()).toISOString(),
     image_url: imageUrl,
     status: "aktiv",
   };
@@ -611,35 +614,29 @@ function initReportFlow() {
 }
 
 function initializeDatePicker() {
-  const yearSelect = document.getElementById("selectYear");
-  const monthSelect = document.getElementById("selectMonth");
-  const daySelect = document.getElementById("selectDay");
+  const dateInput = document.getElementById("reportDateInput");
+  const timeInput = document.getElementById("reportTimeInput");
   const dayOfWeek = document.getElementById("dayOfWeek");
-  const today = new Date();
-  const y = today.getFullYear();
+  const now = new Date();
 
-  yearSelect.innerHTML = `<option value="${y}">${y}</option>`;
-  monthSelect.innerHTML = "";
-  for (let m = today.getMonth(); m >= 0; m--) {
-    const monthName = new Date(y, m).toLocaleString("hu-HU", { month: "long" });
-    monthSelect.innerHTML += `<option value="${m}">${monthName}</option>`;
-  }
+  const currentDate = now.toISOString().slice(0, 10);
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  dateInput.value = currentDate;
+  dateInput.max = currentDate;
+  timeInput.value = currentTime;
 
-  const updateDays = () => {
-    const year = Number(yearSelect.value);
-    const month = Number(monthSelect.value);
-    const maxDay = month === today.getMonth() ? today.getDate() : new Date(year, month + 1, 0).getDate();
-    daySelect.innerHTML = "";
-    for (let d = maxDay; d >= 1; d--) daySelect.innerHTML += `<option value="${d}">${d}</option>`;
-    const date = new Date(year, month, Number(daySelect.value));
+  const updateDateTime = () => {
+    const selectedDate = dateInput.value || currentDate;
+    const selectedTime = timeInput.value || currentTime;
+    const date = new Date(`${selectedDate}T${selectedTime}`);
+    state.reportDateTime = date;
     const dayName = date.toLocaleDateString("hu-HU", { weekday: "long" });
     dayOfWeek.textContent = dayName[0].toUpperCase() + dayName.slice(1);
   };
 
-  yearSelect.onchange = updateDays;
-  monthSelect.onchange = updateDays;
-  daySelect.onchange = updateDays;
-  updateDays();
+  dateInput.onchange = updateDateTime;
+  timeInput.onchange = updateDateTime;
+  updateDateTime();
 }
 
 function bindMenu() {

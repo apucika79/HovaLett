@@ -122,13 +122,17 @@
     <div class="modal-content">
       <button class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <h3>Mikor találtad vagy mikor vesztetted el?</h3>
-      <label for="selectYear">Év:</label>
-      <select id="selectYear"></select><br><br>
-      <label for="selectMonth">Hónap:</label>
-      <select id="selectMonth"></select><br><br>
-      <label for="selectDay">Nap:</label>
-      <select id="selectDay"></select><br><br>
-      <p>Nap: <strong id="dayOfWeek"></strong></p>
+      <div class="date-time-row">
+        <div>
+          <label for="reportDateInput">Dátum</label>
+          <input type="date" id="reportDateInput">
+        </div>
+        <div>
+          <label for="reportTimeInput">Idő</label>
+          <input type="time" id="reportTimeInput" step="60">
+        </div>
+      </div>
+      <p class="day-label">Nap: <strong id="dayOfWeek"></strong></p>
       <div class="modal-actions">
         <button id="datumBackBtn" class="modal-secondary-btn">Vissza</button>
         <button id="datumModalOkBtn" class="modal-primary-btn">OK</button>
