@@ -72,8 +72,9 @@
     <div id="markerForm" class="hidden">
       <button type="button" id="markerFormCloseBtn" class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <h3>Részletek megadása</h3>
-      <label for="photoInput">Kép feltöltése</label>
-      <input type="file" id="photoInput" accept="image/*" /><br><br>
+      <label for="photoInput">Kép feltöltése (max. 3 kép)</label>
+      <input type="file" id="photoInput" accept="image/*" multiple />
+      <small id="photoInputHelp" class="photo-input-help">Maximum 3 képet tölthetsz fel.</small><br><br>
       <label for="descriptionInput">Leírás</label>
       <textarea id="descriptionInput" rows="4" cols="40" maxlength="500" placeholder="Leírás... (max. 500 karakter)"></textarea><br><br>
       <label for="contactInput">Elérhetőség (opcionális)</label>
