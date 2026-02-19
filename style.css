@@ -149,6 +149,7 @@ button {
 }
 
 #markerForm {
+  position: relative;
   margin: 30px auto;
   padding: 20px;
   max-width: 400px;
@@ -156,6 +157,23 @@ button {
   border-radius: 12px;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   text-align: left;
+}
+
+#markerForm h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+#markerForm label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+#markerForm .modal-close-btn {
+  top: 12px;
+  right: 12px;
 }
 
 #topMenu {
