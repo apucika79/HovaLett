@@ -34,6 +34,11 @@ const state = {
     offsetX: 0,
     offsetY: 0,
   },
+  reportFocus: {
+    reportId: null,
+    marker: null,
+    previousView: null,
+  },
 };
 
 const typeToLabel = {
@@ -132,6 +137,45 @@ const el = {
 };
 
 let selectedOwnReport = null;
+const markerByReportId = new Map();
+
+function stopFocusedReportJump() {
+  const { marker, previousView } = state.reportFocus;
+  if (!marker) return;
+
+  const markerElement = marker.getElement?.();
+  if (markerElement) markerElement.classList.remove("is-pulsing-marker");
+
+  if (previousView && Array.isArray(previousView.center)) {
+    map.setView(previousView.center, previousView.zoom, { animate: true });
+  }
+
+  state.reportFocus.reportId = null;
+  state.reportFocus.marker = null;
+  state.reportFocus.previousView = null;
+}
+
+function focusReportOnMap(reportId) {
+  const marker = markerByReportId.get(reportId);
+  if (!marker) return;
+
+  if (state.reportFocus.marker && state.reportFocus.reportId !== reportId) {
+    const oldMarkerElement = state.reportFocus.marker.getElement?.();
+    if (oldMarkerElement) oldMarkerElement.classList.remove("is-pulsing-marker");
+  }
+
+  state.reportFocus.reportId = reportId;
+  state.reportFocus.marker = marker;
+  state.reportFocus.previousView = {
+    center: [map.getCenter().lat, map.getCenter().lng],
+    zoom: map.getZoom(),
+  };
+
+  map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16), { duration: 0.6 });
+
+  const markerElement = marker.getElement?.();
+  if (markerElement) markerElement.classList.add("is-pulsing-marker");
+}
 
 function setInfo(text) {
   const target = document.getElementById("supabaseStatus");
@@ -208,6 +252,9 @@ function updateVisibleItems() {
     if (state.viewMode === "myReports") {
       card.classList.add("my-report-item");
       card.addEventListener("click", () => openManageReportModal(report));
+    } else if (state.viewMode === "home") {
+      card.classList.add("home-report-item");
+      card.addEventListener("click", () => focusReportOnMap(report.id));
     }
     el.reportItems.appendChild(card);
   });
@@ -512,6 +559,8 @@ function markerPopupHtml(report) {
 }
 
 function clearMarkers() {
+  stopFocusedReportJump();
+  markerByReportId.clear();
   state.markers.forEach((m) => map.removeLayer(m));
   state.markers = [];
 }
@@ -529,6 +578,7 @@ function renderMapMarkers() {
     });
     marker.addTo(map);
     state.markers.push(marker);
+    markerByReportId.set(report.id, marker);
   });
 }
 
@@ -917,6 +967,7 @@ function initReportFlow() {
   });
 
   map.on("click", (e) => {
+    stopFocusedReportJump();
     if (!state.user || !state.reportType || !state.selectedCategory) return;
     state.pendingCoords = e.latlng;
     if (state.pendingMarker) {
@@ -1016,6 +1067,13 @@ async function init() {
   state.supabaseOnline = await checkSupabaseConnection();
   await hydrateAuth();
   await loadReports();
+
+  document.addEventListener("click", (event) => {
+    if (!state.reportFocus.marker) return;
+    const clickedReportCard = event.target.closest(".home-report-item");
+    if (clickedReportCard) return;
+    stopFocusedReportJump();
+  });
 }
 
 init();

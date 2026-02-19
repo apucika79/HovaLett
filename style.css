@@ -74,6 +74,24 @@ button {
   font-size: 14px;
 }
 
+.home-report-item {
+  cursor: pointer;
+}
+
+.home-report-item:hover {
+  box-shadow: 0 0 0 2px #42a5f5;
+}
+
+.leaflet-marker-icon.is-pulsing-marker {
+  animation: marker-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes marker-pulse {
+  0%,
+  100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
 .claim-btn { background-color: #4CAF50; padding: 6px 12px; margin-top: 10px; font-size: 13px; }
 .leaflet-popup-content { font-size: 14px; text-align: left; margin: 8px 0; }
 
