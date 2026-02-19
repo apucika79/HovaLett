@@ -110,6 +110,13 @@ function setInfo(text) {
   if (target) target.textContent = text;
 }
 
+function hideFlowModals() {
+  [el.kategoriaModal, el.valasztoModal, el.datumModal, el.helyModal].forEach((modal) => {
+    modal.classList.add("hidden");
+    modal.classList.remove("show");
+  });
+}
+
 function resetReportFlow() {
   state.pendingCoords = null;
   if (state.pendingMarker) {
@@ -126,6 +133,7 @@ function resetReportFlow() {
   el.routeBox.classList.add("hidden");
   el.markerForm.classList.add("hidden");
   el.bejelentesBox.classList.add("hidden");
+  hideFlowModals();
 }
 
 function typeFromSelection() {
@@ -562,6 +570,24 @@ function initReportFlow() {
     state.pendingMarker = L.marker(e.latlng).addTo(map);
     state.pendingMarker.bindPopup("Kijelölt hely").openPopup();
     advanceToReportForm();
+  });
+
+  document.querySelectorAll('[data-flow-close="true"]').forEach((btn) => {
+    btn.addEventListener("click", resetReportFlow);
+  });
+
+  document.getElementById("kategoriaBackBtn").addEventListener("click", resetReportFlow);
+  document.getElementById("valasztoBackBtn").addEventListener("click", () => {
+    el.valasztoModal.classList.add("hidden");
+    el.kategoriaModal.classList.remove("hidden");
+  });
+  document.getElementById("datumBackBtn").addEventListener("click", () => {
+    el.datumModal.classList.add("hidden");
+    el.valasztoModal.classList.remove("hidden");
+  });
+  document.getElementById("helyBackBtn").addEventListener("click", () => {
+    el.helyModal.classList.add("hidden");
+    el.datumModal.classList.remove("hidden");
   });
 
   document.getElementById("saveBtn").addEventListener("click", saveReport);
