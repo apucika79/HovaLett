@@ -81,6 +81,7 @@ const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 
 const MAX_DESCRIPTION_LENGTH = 500;
 const MIN_MARKER_DISTANCE_METERS = 12;
+const MAX_UPLOAD_IMAGES = 3;
 
 const map = L.map("map").setView([47.4979, 19.0402], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
@@ -102,6 +103,7 @@ const el = {
   descriptionInput: document.getElementById("descriptionInput"),
   contactInput: document.getElementById("contactInput"),
   photoInput: document.getElementById("photoInput"),
+  photoInputHelp: document.getElementById("photoInputHelp"),
   routeInput: document.getElementById("routeInput"),
   routeBox: document.getElementById("járatBox"),
   valasztoModal: document.getElementById("valasztoModal"),
@@ -919,6 +921,38 @@ async function uploadImageIfAny(file) {
   return data.publicUrl;
 }
 
+function enforceImageSelectionLimit() {
+  const files = Array.from(el.photoInput.files || []);
+
+  if (!files.length) {
+    el.photoInputHelp.textContent = `Maximum ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`;
+    return;
+  }
+
+  if (files.length > MAX_UPLOAD_IMAGES) {
+    const dataTransfer = new DataTransfer();
+    files.slice(0, MAX_UPLOAD_IMAGES).forEach((file) => dataTransfer.items.add(file));
+    el.photoInput.files = dataTransfer.files;
+    el.photoInputHelp.textContent = `Csak ${MAX_UPLOAD_IMAGES} kép menthető. Az első ${MAX_UPLOAD_IMAGES} kép maradt kiválasztva.`;
+    alert(`Legfeljebb ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`);
+    return;
+  }
+
+  el.photoInputHelp.textContent = `${files.length}/${MAX_UPLOAD_IMAGES} kép kiválasztva.`;
+}
+
+async function uploadImagesIfAny(files) {
+  const selectedFiles = Array.from(files || []).slice(0, MAX_UPLOAD_IMAGES);
+  const uploadedUrls = [];
+
+  for (const file of selectedFiles) {
+    const url = await uploadImageIfAny(file);
+    if (url) uploadedUrls.push(url);
+  }
+
+  return uploadedUrls;
+}
+
 async function saveReport() {
   if (!supabaseClient) return alert("Supabase nincs beállítva.");
   if (!state.supabaseOnline) return alert("A Supabase kapcsolat nem működik, így az éles bejelentés most nem menthető.");
@@ -929,9 +963,9 @@ async function saveReport() {
     return alert("Járművön történt esetnél add meg a járatszámot.");
   }
 
-  let imageUrl = null;
+  let imageUrls = [];
   try {
-    imageUrl = await uploadImageIfAny(el.photoInput.files?.[0]);
+    imageUrls = await uploadImagesIfAny(el.photoInput.files);
   } catch (err) {
     alert(err.message || "Kép feltöltési hiba.");
     return;
@@ -948,7 +982,7 @@ async function saveReport() {
     lat: savedCoords.lat,
     lng: savedCoords.lng,
     created_at: (state.reportDateTime || new Date()).toISOString(),
-    image_url: imageUrl,
+    image_url: imageUrls.length ? JSON.stringify(imageUrls) : null,
     status: "aktiv",
   };
 
@@ -1265,6 +1299,7 @@ function bindMenu() {
   el.reportManageModalCloseBtn.addEventListener("click", closeManageReportModal);
   el.saveManageChangesBtn.addEventListener("click", handleSaveReportChanges);
   el.deleteReportBtn.addEventListener("click", handleDeleteReport);
+  el.photoInput.addEventListener("change", enforceImageSelectionLimit);
 }
 
 async function init() {

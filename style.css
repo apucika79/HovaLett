@@ -24,6 +24,13 @@ button {
   color: white;
 }
 
+.photo-input-help {
+  display: block;
+  margin-top: 6px;
+  color: #4f5b66;
+  font-size: 12px;
+}
+
 #foundBtn { background-color: #4CAF50; }
 #lostBtn { background-color: #f44336; }
 .hidden { display: none !important; }
