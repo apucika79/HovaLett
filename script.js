@@ -47,9 +47,25 @@ const categoryMap = {
   Ruházat: "Ruházat, táska",
 };
 
-const markerIconConfig = { iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] };
-let greenBusIcon = L.icon({ iconUrl: "bus-green.png", ...markerIconConfig });
-let redBusIcon = L.icon({ iconUrl: "bus-red.png", ...markerIconConfig });
+const busMarkerIconConfig = { iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] };
+const defaultMarkerIconConfig = {
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  shadowSize: [41, 41],
+};
+
+function createDefaultMarkerIcon(colorHex) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41"><path fill="${colorHex}" stroke="#ffffff" stroke-width="2" d="M12.5 1C6.2 1 1.1 6.1 1.1 12.4c0 8.8 11.4 27.6 11.4 27.6s11.4-18.8 11.4-27.6C23.9 6.1 18.8 1 12.5 1Z"/><circle cx="12.5" cy="12.4" r="4.7" fill="#ffffff"/></svg>`;
+  return L.icon({ iconUrl: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`, ...defaultMarkerIconConfig });
+}
+
+const greenDefaultIcon = createDefaultMarkerIcon("#2e7d32");
+const redDefaultIcon = createDefaultMarkerIcon("#c62828");
+
+let greenBusIcon = L.icon({ iconUrl: "bus-green.png", ...busMarkerIconConfig });
+let redBusIcon = L.icon({ iconUrl: "bus-red.png", ...busMarkerIconConfig });
 
 function buildTransparentIcon(iconUrl) {
   return new Promise((resolve) => {
@@ -60,7 +76,7 @@ function buildTransparentIcon(iconUrl) {
       canvas.height = img.height;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-        resolve(L.icon({ iconUrl, ...markerIconConfig }));
+        resolve(L.icon({ iconUrl, ...busMarkerIconConfig }));
         return;
       }
 
@@ -74,9 +90,9 @@ function buildTransparentIcon(iconUrl) {
         if (r >= 245 && g >= 245 && b >= 245) pixels[i + 3] = 0;
       }
       ctx.putImageData(imageData, 0, 0);
-      resolve(L.icon({ iconUrl: canvas.toDataURL("image/png"), ...markerIconConfig }));
+      resolve(L.icon({ iconUrl: canvas.toDataURL("image/png"), ...busMarkerIconConfig }));
     };
-    img.onerror = () => resolve(L.icon({ iconUrl, ...markerIconConfig }));
+    img.onerror = () => resolve(L.icon({ iconUrl, ...busMarkerIconConfig }));
     img.src = iconUrl;
   });
 }
@@ -215,11 +231,18 @@ function clearMarkers() {
   state.markers = [];
 }
 
+function isVehicleReport(report) {
+  return String(report.cim || "").trim().toLowerCase().startsWith("járat:");
+}
+
 function renderMapMarkers() {
   clearMarkers();
   state.reports.filter(isReportVisible).forEach((report) => {
     if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return;
-    const icon = report.tipus === "talalt" ? greenBusIcon : redBusIcon;
+    const useBusIcon = isVehicleReport(report);
+    const icon = report.tipus === "talalt"
+      ? (useBusIcon ? greenBusIcon : greenDefaultIcon)
+      : (useBusIcon ? redBusIcon : redDefaultIcon);
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.bindPopup(markerPopupHtml(report));
     marker.on("popupopen", () => {
