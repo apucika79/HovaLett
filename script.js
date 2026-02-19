@@ -144,12 +144,22 @@ const el = {
 let selectedOwnReport = null;
 const markerByReportId = new Map();
 
+function syncFocusedMarkerState() {
+  markerByReportId.forEach((marker, reportId) => {
+    const markerElement = marker.getElement?.();
+    if (!markerElement) return;
+
+    const isFocusedMarker = state.reportFocus.reportId === reportId;
+    const hasFocusedMarker = Boolean(state.reportFocus.reportId);
+
+    markerElement.classList.toggle("is-pulsing-marker", isFocusedMarker);
+    markerElement.classList.toggle("is-muted-marker", hasFocusedMarker && !isFocusedMarker);
+  });
+}
+
 function stopFocusedReportJump() {
   const { marker, previousView } = state.reportFocus;
   if (!marker) return;
-
-  const markerElement = marker.getElement?.();
-  if (markerElement) markerElement.classList.remove("is-pulsing-marker");
 
   if (previousView && Array.isArray(previousView.center)) {
     map.setView(previousView.center, previousView.zoom, { animate: true });
@@ -158,6 +168,7 @@ function stopFocusedReportJump() {
   state.reportFocus.reportId = null;
   state.reportFocus.marker = null;
   state.reportFocus.previousView = null;
+  syncFocusedMarkerState();
 }
 
 function isMarkerInteractionTarget(target) {
@@ -168,11 +179,6 @@ function isMarkerInteractionTarget(target) {
 function focusReportOnMap(reportId) {
   const marker = markerByReportId.get(reportId);
   if (!marker) return false;
-
-  if (state.reportFocus.marker && state.reportFocus.reportId !== reportId) {
-    const oldMarkerElement = state.reportFocus.marker.getElement?.();
-    if (oldMarkerElement) oldMarkerElement.classList.remove("is-pulsing-marker");
-  }
 
   state.reportFocus.reportId = reportId;
   state.reportFocus.marker = marker;
@@ -185,8 +191,7 @@ function focusReportOnMap(reportId) {
   const targetZoom = Math.min(maxZoom, Math.max(map.getZoom() + 2, 17));
   map.flyTo(marker.getLatLng(), targetZoom, { duration: 0.6 });
 
-  const markerElement = marker.getElement?.();
-  if (markerElement) markerElement.classList.add("is-pulsing-marker");
+  syncFocusedMarkerState();
 
   return true;
 }
@@ -685,11 +690,16 @@ function renderMapMarkers() {
     if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return;
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
-    marker.on("click", () => openReportDetailModal(report));
+    marker.on("click", () => {
+      if (state.reportFocus.reportId && state.reportFocus.reportId !== report.id) return;
+      openReportDetailModal(report);
+    });
     marker.addTo(map);
     state.markers.push(marker);
     markerByReportId.set(report.id, marker);
   });
+
+  syncFocusedMarkerState();
 }
 
 async function checkSupabaseConnection() {

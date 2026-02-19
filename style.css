@@ -86,6 +86,12 @@ button {
   will-change: filter;
 }
 
+.leaflet-marker-icon.is-muted-marker {
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
 @keyframes marker-pulse {
   0%,
   100% {
