@@ -193,6 +193,25 @@
     </div>
   </div>
 
+  <div id="imageViewerModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content image-viewer-content">
+      <button class="modal-close-btn" id="imageViewerCloseBtn" aria-label="Bezárás">✕</button>
+      <h3>Kép megtekintése</h3>
+      <div class="image-stage-wrap">
+        <button id="imagePrevBtn" class="modal-secondary-btn image-nav-btn" type="button" aria-label="Előző kép">◀</button>
+        <div class="image-stage" id="imageStage">
+          <img id="imageViewerImg" src="" alt="Bejelentés képe" />
+        </div>
+        <button id="imageNextBtn" class="modal-secondary-btn image-nav-btn" type="button" aria-label="Következő kép">▶</button>
+      </div>
+      <p id="imageCounter" class="image-counter"></p>
+      <div class="modal-actions">
+        <button id="zoomOutBtn" class="modal-secondary-btn" type="button">Nagyítás -</button>
+        <button id="zoomInBtn" class="modal-primary-btn" type="button">Nagyítás +</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
