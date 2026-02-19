@@ -78,6 +78,8 @@ const greenDefaultIcon = createDefaultMarkerIcon("#2e7d32");
 const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 
 const MAX_DESCRIPTION_LENGTH = 500;
+const MIN_MARKER_DISTANCE_METERS = 12;
+const MIN_MARKER_DISTANCE_PIXELS = 22;
 
 const map = L.map("map").setView([47.4979, 19.0402], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
@@ -684,12 +686,58 @@ function clearMarkers() {
   state.markers = [];
 }
 
+function isPointFarEnoughFromMarkers(point, occupiedPoints, minDistancePx) {
+  return occupiedPoints.every((occupiedPoint) => point.distanceTo(occupiedPoint) >= minDistancePx);
+}
+
+function findDisplayPosition(baseLatLng, occupiedPoints) {
+  const basePoint = map.latLngToLayerPoint(baseLatLng);
+  if (isPointFarEnoughFromMarkers(basePoint, occupiedPoints, MIN_MARKER_DISTANCE_PIXELS)) {
+    occupiedPoints.push(basePoint);
+    return baseLatLng;
+  }
+
+  const ringCount = 8;
+  const minRadius = MIN_MARKER_DISTANCE_PIXELS;
+  const radiusStep = 10;
+
+  for (let ring = 1; ring <= ringCount; ring += 1) {
+    const radius = minRadius + (ring - 1) * radiusStep;
+    const slots = Math.max(8, Math.round((2 * Math.PI * radius) / minRadius));
+
+    for (let i = 0; i < slots; i += 1) {
+      const angle = (2 * Math.PI * i) / slots;
+      const candidatePoint = L.point(
+        basePoint.x + Math.cos(angle) * radius,
+        basePoint.y + Math.sin(angle) * radius,
+      );
+
+      if (!isPointFarEnoughFromMarkers(candidatePoint, occupiedPoints, MIN_MARKER_DISTANCE_PIXELS)) continue;
+      occupiedPoints.push(candidatePoint);
+      return map.layerPointToLatLng(candidatePoint);
+    }
+  }
+
+  occupiedPoints.push(basePoint);
+  return baseLatLng;
+}
+
+function hasNearbyReport(latlng) {
+  return state.reports.some((report) => {
+    if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return false;
+    const distance = map.distance(latlng, [report.lat, report.lng]);
+    return distance < MIN_MARKER_DISTANCE_METERS;
+  });
+}
+
 function renderMapMarkers() {
   clearMarkers();
+  const occupiedPoints = [];
   getReportsForCurrentView().forEach((report) => {
     if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return;
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
-    const marker = L.marker([report.lat, report.lng], { icon });
+    const displayLatLng = findDisplayPosition(L.latLng(report.lat, report.lng), occupiedPoints);
+    const marker = L.marker(displayLatLng, { icon });
     marker.on("click", () => {
       if (state.reportFocus.reportId && state.reportFocus.reportId !== report.id) return;
       openReportDetailModal(report);
@@ -841,6 +889,9 @@ async function saveReport() {
   if (!state.supabaseOnline) return alert("A Supabase kapcsolat nem működik, így az éles bejelentés most nem menthető.");
   if (!state.user) return alert("Bejelentkezés szükséges.");
   if (!state.pendingCoords) return alert("Előbb jelöld a helyet a térképen.");
+  if (hasNearbyReport(state.pendingCoords)) {
+    return alert("Erre a pontra már került jelölő. Tedd arrébb egy kicsit, hogy minden marker jól kattintható maradjon.");
+  }
   if (!state.selectedCategory) return alert("Válassz kategóriát.");
   if (state.pendingLocationType === "jarmu" && !el.routeInput.value.trim()) {
     return alert("Járművön történt esetnél add meg a járatszámot.");
@@ -1090,6 +1141,10 @@ function initReportFlow() {
     if (isMarkerInteractionTarget(e.originalEvent?.target)) return;
     stopFocusedReportJump();
     if (!state.user || !state.reportType || !state.selectedCategory) return;
+    if (hasNearbyReport(e.latlng)) {
+      alert("Itt már van egy marker nagyon közel. Kérlek jelöld arrébb egy picit.");
+      return;
+    }
     state.pendingCoords = e.latlng;
     if (state.pendingMarker) {
       map.removeLayer(state.pendingMarker);
@@ -1189,6 +1244,10 @@ async function init() {
   state.supabaseOnline = await checkSupabaseConnection();
   await hydrateAuth();
   await loadReports();
+
+  map.on("zoomend", () => {
+    renderMapMarkers();
+  });
 
   document.addEventListener("click", (event) => {
     if (!state.reportFocus.marker) return;
