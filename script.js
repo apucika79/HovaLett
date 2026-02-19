@@ -341,14 +341,15 @@ function updateVisibleItems() {
   const visibleReports = getReportsForCurrentView();
   visibleReports.forEach((report) => {
     const isHomeView = state.viewMode === "home";
+    const isHomeLikeView = isHomeView || state.viewMode === "myReports";
     const card = document.createElement("div");
     card.className = "report-card";
     if (isHomeView) card.classList.add("home-report-item");
-    card.innerHTML = reportCardHtml(report, { includeDescription: !isHomeView, includeDetailButton: isHomeView });
-    if (state.viewMode === "myReports") {
-      card.classList.add("my-report-item");
-      card.addEventListener("click", () => openManageReportModal(report));
-    } else if (isHomeView) {
+    card.innerHTML = reportCardHtml(report, {
+      includeDescription: !isHomeLikeView,
+      includeDetailButton: isHomeLikeView,
+    });
+    if (isHomeLikeView) {
       const detailBtn = card.querySelector("[data-focus-report]");
       detailBtn?.addEventListener("click", () => {
         focusReportOnMap(report.id);
