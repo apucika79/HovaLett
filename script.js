@@ -336,16 +336,12 @@ async function handleDeleteReport() {
 
 function reportCardHtml(report) {
   const imageUrls = getImageUrls(report.image_url);
-  const imageButton = imageUrls.length > 0
-    ? `<button class="claim-btn open-image-btn" data-images="${encodeURIComponent(JSON.stringify(imageUrls))}" type="button">Kép megnyitása</button><br>`
-    : "";
 
   return `
     <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${typeToLabel[report.tipus] || report.tipus}</strong> – ${report.kategoria}<br>
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
     <strong>Leírás:</strong> ${report.leiras || "-"}<br>
-    ${imageButton}
   `;
 }
 
