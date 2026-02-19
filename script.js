@@ -585,35 +585,51 @@ function closeReportDetailModal() {
   el.reportDetailBody.innerHTML = "";
 }
 
+function handleModalCloseButton(closeBtn) {
+  if (!closeBtn) return;
+
+  if (closeBtn.dataset.flowClose === "true") {
+    resetReportFlow();
+    return;
+  }
+
+  if (closeBtn.dataset.authClose === "true") {
+    el.modal.classList.add("hidden");
+    el.modal.classList.remove("show");
+    return;
+  }
+
+  const parentModal = closeBtn.closest(".modal");
+  if (!parentModal) return;
+
+  if (parentModal === el.reportDetailModal) {
+    closeReportDetailModal();
+    return;
+  }
+  if (parentModal === el.imageViewerModal) {
+    closeImageViewer();
+    return;
+  }
+  if (parentModal === el.reportManageModal) {
+    closeManageReportModal();
+    return;
+  }
+
+  parentModal.classList.add("hidden");
+  parentModal.classList.remove("show");
+}
+
 function bindGlobalCloseButtons() {
-  document.addEventListener("click", (event) => {
+  const handleCloseEvent = (event) => {
     const closeBtn = event.target.closest(".modal-close-btn");
     if (!closeBtn) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handleModalCloseButton(closeBtn);
+  };
 
-    if (closeBtn.dataset.flowClose === "true") {
-      resetReportFlow();
-      return;
-    }
-
-    const parentModal = closeBtn.closest(".modal");
-    if (!parentModal) return;
-
-    if (parentModal === el.reportDetailModal) {
-      closeReportDetailModal();
-      return;
-    }
-    if (parentModal === el.imageViewerModal) {
-      closeImageViewer();
-      return;
-    }
-    if (parentModal === el.reportManageModal) {
-      closeManageReportModal();
-      return;
-    }
-
-    parentModal.classList.add("hidden");
-    parentModal.classList.remove("show");
-  });
+  document.addEventListener("click", handleCloseEvent, true);
+  document.addEventListener("pointerup", handleCloseEvent, true);
 }
 
 function openReportDetailModal(report) {
