@@ -259,6 +259,7 @@ function updateVisibleItems() {
     const isHomeView = state.viewMode === "home";
     const card = document.createElement("div");
     card.className = "report-card";
+    if (isHomeView) card.classList.add("home-report-item");
     card.innerHTML = reportCardHtml(report, { includeDescription: !isHomeView, includeDetailButton: isHomeView });
     if (state.viewMode === "myReports") {
       card.classList.add("my-report-item");
@@ -267,7 +268,6 @@ function updateVisibleItems() {
       const detailBtn = card.querySelector("[data-focus-report]");
       detailBtn?.addEventListener("click", () => {
         focusReportOnMap(report.id);
-        openReportDetailModal(report);
       });
     }
     el.reportItems.appendChild(card);
