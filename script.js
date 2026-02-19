@@ -27,6 +27,11 @@ const state = {
   currentReportForMessage: null,
   supabaseOnline: false,
   viewMode: "home",
+  imageViewer: {
+    urls: [],
+    index: 0,
+    zoom: 1,
+  },
 };
 
 const typeToLabel = {
@@ -115,6 +120,14 @@ const el = {
   manageReportDescInput: document.getElementById("manageReportDescInput"),
   saveManageChangesBtn: document.getElementById("saveManageChangesBtn"),
   deleteReportBtn: document.getElementById("deleteReportBtn"),
+  imageViewerModal: document.getElementById("imageViewerModal"),
+  imageViewerImg: document.getElementById("imageViewerImg"),
+  imageCounter: document.getElementById("imageCounter"),
+  imagePrevBtn: document.getElementById("imagePrevBtn"),
+  imageNextBtn: document.getElementById("imageNextBtn"),
+  zoomInBtn: document.getElementById("zoomInBtn"),
+  zoomOutBtn: document.getElementById("zoomOutBtn"),
+  imageViewerCloseBtn: document.getElementById("imageViewerCloseBtn"),
 };
 
 let selectedOwnReport = null;
@@ -266,13 +279,116 @@ async function handleDeleteReport() {
 }
 
 function reportCardHtml(report) {
+  const imageUrls = getImageUrls(report.image_url);
+  const imageButton = imageUrls.length > 0
+    ? `<button class="claim-btn open-image-btn" data-images="${encodeURIComponent(JSON.stringify(imageUrls))}" type="button">Kép megnyitása</button><br>`
+    : "";
+
   return `
     <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${typeToLabel[report.tipus] || report.tipus}</strong> – ${report.kategoria}<br>
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
     <strong>Leírás:</strong> ${report.leiras || "-"}<br>
-    ${report.image_url ? `<a href="${report.image_url}" target="_blank" rel="noopener">Kép megnyitása</a><br>` : ""}
+    ${imageButton}
   `;
+}
+
+function getImageUrls(rawValue) {
+  if (!rawValue) return [];
+  if (Array.isArray(rawValue)) return rawValue.filter(Boolean);
+
+  const normalized = String(rawValue).trim();
+  if (!normalized) return [];
+
+  if (normalized.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(normalized);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  return normalized.split(",").map((url) => url.trim()).filter(Boolean);
+}
+
+function closeImageViewer() {
+  el.imageViewerModal.classList.add("hidden");
+  el.imageViewerImg.src = "";
+}
+
+function renderImageViewer() {
+  const { urls, index, zoom } = state.imageViewer;
+  if (!urls.length) return;
+
+  el.imageViewerImg.src = urls[index];
+  el.imageViewerImg.style.transform = `scale(${zoom})`;
+  el.imageCounter.textContent = `${index + 1} / ${urls.length}`;
+  el.imagePrevBtn.disabled = urls.length <= 1;
+  el.imageNextBtn.disabled = urls.length <= 1;
+}
+
+function openImageViewer(urls, startIndex = 0) {
+  if (!urls?.length) return;
+  state.imageViewer.urls = urls;
+  state.imageViewer.index = startIndex;
+  state.imageViewer.zoom = 1;
+  renderImageViewer();
+  el.imageViewerModal.classList.remove("hidden");
+}
+
+function setupImageViewerEvents() {
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest(".open-image-btn");
+    if (!trigger) return;
+    const raw = trigger.dataset.images;
+    if (!raw) return;
+    let urls = [];
+    try {
+      urls = JSON.parse(decodeURIComponent(raw));
+    } catch {
+      return;
+    }
+    openImageViewer(urls, 0);
+  });
+
+  el.imageViewerCloseBtn.addEventListener("click", closeImageViewer);
+  el.imageViewerModal.addEventListener("click", (event) => {
+    if (event.target === el.imageViewerModal) closeImageViewer();
+  });
+
+  el.imagePrevBtn.addEventListener("click", () => {
+    const { urls, index } = state.imageViewer;
+    if (urls.length <= 1) return;
+    state.imageViewer.index = (index - 1 + urls.length) % urls.length;
+    state.imageViewer.zoom = 1;
+    renderImageViewer();
+  });
+
+  el.imageNextBtn.addEventListener("click", () => {
+    const { urls, index } = state.imageViewer;
+    if (urls.length <= 1) return;
+    state.imageViewer.index = (index + 1) % urls.length;
+    state.imageViewer.zoom = 1;
+    renderImageViewer();
+  });
+
+  el.zoomInBtn.addEventListener("click", () => {
+    state.imageViewer.zoom = Math.min(state.imageViewer.zoom + 0.25, 3);
+    renderImageViewer();
+  });
+
+  el.zoomOutBtn.addEventListener("click", () => {
+    state.imageViewer.zoom = Math.max(state.imageViewer.zoom - 0.25, 1);
+    renderImageViewer();
+  });
+
+  el.imageViewerImg.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    const direction = event.deltaY < 0 ? 0.2 : -0.2;
+    state.imageViewer.zoom = Math.min(3, Math.max(1, state.imageViewer.zoom + direction));
+    renderImageViewer();
+  });
 }
 
 function markerPopupHtml(report) {
@@ -783,6 +899,7 @@ async function init() {
   bindMenu();
   initFilters();
   initReportFlow();
+  setupImageViewerEvents();
 
   state.supabaseOnline = await checkSupabaseConnection();
   await hydrateAuth();

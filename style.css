@@ -276,3 +276,57 @@ button {
 .danger-btn {
   background-color: #d32f2f;
 }
+
+
+.open-image-btn {
+  background-color: #1976d2;
+  margin: 8px 0 0;
+}
+
+.image-viewer-content {
+  max-width: 900px;
+  width: min(95vw, 900px);
+}
+
+.image-stage-wrap {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.image-stage {
+  height: 65vh;
+  max-height: 680px;
+  overflow: auto;
+  border-radius: 10px;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#imageViewerImg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+
+.image-nav-btn {
+  min-width: 48px;
+  padding: 10px;
+}
+
+.image-counter {
+  margin: 10px 0 0;
+  font-weight: 700;
+}
+
+#imagePrevBtn:disabled,
+#imageNextBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
