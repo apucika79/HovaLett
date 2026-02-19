@@ -21,6 +21,7 @@ const state = {
   reportType: null,
   selectedCategory: null,
   pendingCoords: null,
+  pendingMarker: null,
   pendingLocationType: null,
   currentReportForMessage: null,
   supabaseOnline: false,
@@ -152,6 +153,10 @@ function setInfo(text) {
 
 function resetReportFlow() {
   state.pendingCoords = null;
+  if (state.pendingMarker) {
+    map.removeLayer(state.pendingMarker);
+    state.pendingMarker = null;
+  }
   state.pendingLocationType = null;
   state.selectedCategory = null;
   state.reportType = null;
@@ -572,6 +577,11 @@ function initReportFlow() {
   map.on("click", (e) => {
     if (!state.user || !state.reportType || !state.selectedCategory) return;
     state.pendingCoords = e.latlng;
+    if (state.pendingMarker) {
+      map.removeLayer(state.pendingMarker);
+    }
+    state.pendingMarker = L.marker(e.latlng).addTo(map);
+    state.pendingMarker.bindPopup("Kijelölt hely").openPopup();
     el.markerForm.classList.remove("hidden");
     if (state.pendingLocationType === "jarmu") el.routeBox.classList.remove("hidden");
     else el.routeBox.classList.add("hidden");
