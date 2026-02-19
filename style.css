@@ -84,12 +84,17 @@ button {
 
 .leaflet-marker-icon.is-pulsing-marker {
   animation: marker-pulse 0.9s ease-in-out infinite;
+  will-change: filter;
 }
 
 @keyframes marker-pulse {
   0%,
-  100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(66, 165, 245, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(66, 165, 245, 0.95));
+  }
 }
 
 .claim-btn { background-color: #4CAF50; padding: 6px 12px; margin-top: 10px; font-size: 13px; }
