@@ -47,7 +47,6 @@ const categoryMap = {
   Ruházat: "Ruházat, táska",
 };
 
-const busMarkerIconConfig = { iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] };
 const defaultMarkerIconConfig = {
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -63,46 +62,6 @@ function createDefaultMarkerIcon(colorHex) {
 
 const greenDefaultIcon = createDefaultMarkerIcon("#2e7d32");
 const redDefaultIcon = createDefaultMarkerIcon("#c62828");
-
-let greenBusIcon = L.icon({ iconUrl: "bus-green.png", ...busMarkerIconConfig });
-let redBusIcon = L.icon({ iconUrl: "bus-red.png", ...busMarkerIconConfig });
-
-function buildTransparentIcon(iconUrl) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(L.icon({ iconUrl, ...busMarkerIconConfig }));
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels = imageData.data;
-      for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-        if (r >= 245 && g >= 245 && b >= 245) pixels[i + 3] = 0;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      resolve(L.icon({ iconUrl: canvas.toDataURL("image/png"), ...busMarkerIconConfig }));
-    };
-    img.onerror = () => resolve(L.icon({ iconUrl, ...busMarkerIconConfig }));
-    img.src = iconUrl;
-  });
-}
-
-async function enhanceMarkerIcons() {
-  [greenBusIcon, redBusIcon] = await Promise.all([
-    buildTransparentIcon("bus-green.png"),
-    buildTransparentIcon("bus-red.png"),
-  ]);
-}
 
 const map = L.map("map").setView([47.4979, 19.0402], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
@@ -231,18 +190,11 @@ function clearMarkers() {
   state.markers = [];
 }
 
-function isVehicleReport(report) {
-  return String(report.cim || "").trim().toLowerCase().startsWith("járat:");
-}
-
 function renderMapMarkers() {
   clearMarkers();
   state.reports.filter(isReportVisible).forEach((report) => {
     if (!Number.isFinite(report.lat) || !Number.isFinite(report.lng)) return;
-    const useBusIcon = isVehicleReport(report);
-    const icon = report.tipus === "talalt"
-      ? (useBusIcon ? greenBusIcon : greenDefaultIcon)
-      : (useBusIcon ? redBusIcon : redDefaultIcon);
+    const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.bindPopup(markerPopupHtml(report));
     marker.on("popupopen", () => {
@@ -676,7 +628,6 @@ async function init() {
   bindMenu();
   initFilters();
   initReportFlow();
-  await enhanceMarkerIcons();
 
   state.supabaseOnline = await checkSupabaseConnection();
   await hydrateAuth();
