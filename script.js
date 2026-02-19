@@ -353,6 +353,7 @@ function updateVisibleItems() {
       const detailBtn = card.querySelector("[data-focus-report]");
       detailBtn?.addEventListener("click", () => {
         focusReportOnMap(report.id);
+        openReportDetailModal(report);
       });
     }
     el.reportItems.appendChild(card);
@@ -906,7 +907,21 @@ async function refreshProfileData() {
     .order("created_at", { ascending: false });
 
   const normalizedMyReports = generateUniqueDisplayCodes((myReports || []).map(normalizeReport));
-  el.myReportsList.innerHTML = normalizedMyReports.map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
+  el.myReportsList.innerHTML = normalizedMyReports
+    .map((report) => `<div class="report-card">${reportCardHtml(report, { includeDetailButton: true })}</div>`)
+    .join("") || "<p>Nincs saját bejelentés.</p>";
+
+  el.myReportsList.querySelectorAll("[data-focus-report]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const reportId = Number(btn.dataset.focusReport);
+      const selectedReport = normalizedMyReports.find((report) => report.id === reportId);
+      if (!selectedReport) return;
+
+      showMyReports();
+      focusReportOnMap(reportId);
+      openReportDetailModal(selectedReport);
+    });
+  });
 
   const { data: messages } = await supabaseClient
     .from("uzenetek")
