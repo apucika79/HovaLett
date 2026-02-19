@@ -316,6 +316,11 @@ button {
   transition: transform 0.15s ease;
   user-select: none;
   -webkit-user-drag: none;
+  cursor: grab;
+}
+
+#imageViewerImg:active {
+  cursor: grabbing;
 }
 
 .image-nav-btn {
@@ -326,6 +331,13 @@ button {
 .image-counter {
   margin: 10px 0 0;
   font-weight: 700;
+}
+
+
+.image-viewer-help {
+  margin: 10px 0 0;
+  color: #455a64;
+  font-size: 14px;
 }
 
 #imagePrevBtn:disabled,

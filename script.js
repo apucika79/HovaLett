@@ -128,8 +128,6 @@ const el = {
   imageCounter: document.getElementById("imageCounter"),
   imagePrevBtn: document.getElementById("imagePrevBtn"),
   imageNextBtn: document.getElementById("imageNextBtn"),
-  zoomInBtn: document.getElementById("zoomInBtn"),
-  zoomOutBtn: document.getElementById("zoomOutBtn"),
   imageViewerCloseBtn: document.getElementById("imageViewerCloseBtn"),
 };
 
@@ -420,15 +418,8 @@ function setupImageViewerEvents() {
     renderImageViewer();
   });
 
-  el.zoomInBtn.addEventListener("click", () => {
-    setImageZoom(state.imageViewer.zoom + 0.25);
-  });
 
-  el.zoomOutBtn.addEventListener("click", () => {
-    setImageZoom(state.imageViewer.zoom - 0.25);
-  });
-
-  el.imageViewerImg.addEventListener("wheel", (event) => {
+  el.imageStage.addEventListener("wheel", (event) => {
     event.preventDefault();
     const direction = event.deltaY < 0 ? 0.2 : -0.2;
     const stageRect = el.imageStage.getBoundingClientRect();
@@ -460,6 +451,7 @@ function setupImageViewerEvents() {
   }
 
   el.imageStage.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
     el.imageStage.setPointerCapture(event.pointerId);
     activePointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
 
@@ -476,6 +468,7 @@ function setupImageViewerEvents() {
 
   el.imageStage.addEventListener("pointermove", (event) => {
     if (!activePointers.has(event.pointerId)) return;
+    event.preventDefault();
     activePointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
 
     if (activePointers.size === 2) {
