@@ -87,7 +87,7 @@ button {
   align-items: center;
   z-index: 1000;
 }
-.modal:not(.hidden), .modal.show { display: flex; }
+.modal:not(.hidden) { display: flex; }
 .modal-content {
   background-color: #fff;
   padding: 20px;
