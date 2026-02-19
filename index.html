@@ -87,23 +87,28 @@
 
   <div id="valasztoModal" class="modal hidden">
     <div class="modal-content">
+      <button class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <h3>Hol találtad vagy hol vesztetted el?</h3>
       <div class="valaszto-buttons">
         <button id="modalUtcaBtn">📍 Utcán/Épületben</button>
         <button id="modalJarmuBtn">🚍 Járművön</button>
       </div>
+      <button id="valasztoBackBtn" class="modal-back-btn">Vissza</button>
     </div>
   </div>
 
   <div id="helyModal" class="modal hidden">
     <div class="modal-content">
+      <button class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <p>Kérlek, tűzd le a térképen a pontos helyet.</p>
       <button id="helyModalOkBtn">OK</button>
+      <button id="helyBackBtn" class="modal-back-btn">Vissza</button>
     </div>
   </div>
 
   <div id="datumModal" class="modal hidden">
     <div class="modal-content">
+      <button class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <h3>Mikor találtad vagy mikor vesztetted el?</h3>
       <label for="selectYear">Év:</label>
       <select id="selectYear"></select><br><br>
@@ -113,11 +118,13 @@
       <select id="selectDay"></select><br><br>
       <p>Nap: <strong id="dayOfWeek"></strong></p>
       <button id="datumModalOkBtn">OK</button>
+      <button id="datumBackBtn" class="modal-back-btn">Vissza</button>
     </div>
   </div>
 
   <div id="kategoriavalasztoModal" class="modal hidden">
     <div class="modal-content">
+      <button class="modal-close-btn" data-flow-close="true" aria-label="Bezárás">✕</button>
       <h3>Milyen típusú tárgyról van szó?</h3>
       <div class="kat-grid">
         <button class="kat-valaszto-btn">Telefon</button>
@@ -129,6 +136,7 @@
         <button class="kat-valaszto-btn">Ékszer</button>
         <button class="kat-valaszto-btn">Egyéb</button>
       </div>
+      <button id="kategoriaBackBtn" class="modal-back-btn">Vissza</button>
     </div>
   </div>
 
