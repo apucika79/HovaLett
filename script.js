@@ -106,7 +106,18 @@ const el = {
   sendFirstMessageBtn: document.getElementById("sendFirstMessageBtn"),
   cancelFirstMessageBtn: document.getElementById("cancelFirstMessageBtn"),
   messageModalCloseBtn: document.getElementById("messageModalCloseBtn"),
+  reportManageModal: document.getElementById("reportManageModal"),
+  reportManageModalCloseBtn: document.getElementById("reportManageModalCloseBtn"),
+  reportManageDetails: document.getElementById("reportManageDetails"),
+  openManageActionsBtn: document.getElementById("openManageActionsBtn"),
+  manageActionsPanel: document.getElementById("manageActionsPanel"),
+  manageReportTitleInput: document.getElementById("manageReportTitleInput"),
+  manageReportDescInput: document.getElementById("manageReportDescInput"),
+  saveManageChangesBtn: document.getElementById("saveManageChangesBtn"),
+  deleteReportBtn: document.getElementById("deleteReportBtn"),
 };
+
+let selectedOwnReport = null;
 
 function setInfo(text) {
   const target = document.getElementById("supabaseStatus");
@@ -180,6 +191,10 @@ function updateVisibleItems() {
     const card = document.createElement("div");
     card.className = "report-card";
     card.innerHTML = reportCardHtml(report);
+    if (state.viewMode === "myReports") {
+      card.classList.add("my-report-item");
+      card.addEventListener("click", () => openManageReportModal(report));
+    }
     el.reportItems.appendChild(card);
   });
 
@@ -188,6 +203,66 @@ function updateVisibleItems() {
       ? "<p>Még nincs saját bejelentésed.</p>"
       : "<p>Nincs a szűrőknek megfelelő tárgy. Kapcsold be több kategóriát vagy típust.</p>";
   }
+}
+
+function openManageReportModal(report) {
+  if (!report || !state.user || report.user_id !== state.user.id) return;
+  selectedOwnReport = report;
+  el.reportManageDetails.innerHTML = reportCardHtml(report);
+  el.manageActionsPanel.classList.add("hidden");
+  el.manageReportTitleInput.value = report.cim || "";
+  el.manageReportDescInput.value = report.leiras || "";
+  el.reportManageModal.classList.remove("hidden");
+}
+
+function closeManageReportModal() {
+  selectedOwnReport = null;
+  el.reportManageModal.classList.add("hidden");
+  el.manageActionsPanel.classList.add("hidden");
+}
+
+async function handleSaveReportChanges() {
+  if (!selectedOwnReport || !supabaseClient || !state.user) return;
+  const newTitle = el.manageReportTitleInput.value.trim();
+  const newDesc = el.manageReportDescInput.value.trim();
+
+  const { error } = await supabaseClient
+    .from("bejelentesek")
+    .update({ cim: newTitle || "Utcán/épületben", leiras: newDesc })
+    .eq("id", selectedOwnReport.id)
+    .eq("user_id", state.user.id);
+
+  if (error) {
+    alert(`Módosítás sikertelen: ${error.message}`);
+    return;
+  }
+
+  await loadReports();
+  await refreshProfileData();
+  closeManageReportModal();
+  alert("Bejelentés sikeresen módosítva.");
+}
+
+async function handleDeleteReport() {
+  if (!selectedOwnReport || !supabaseClient || !state.user) return;
+  const ok = window.confirm("Biztosan törlöd ezt a bejelentést?");
+  if (!ok) return;
+
+  const { error } = await supabaseClient
+    .from("bejelentesek")
+    .delete()
+    .eq("id", selectedOwnReport.id)
+    .eq("user_id", state.user.id);
+
+  if (error) {
+    alert(`Törlés sikertelen: ${error.message}`);
+    return;
+  }
+
+  await loadReports();
+  await refreshProfileData();
+  closeManageReportModal();
+  alert("Bejelentés törölve.");
 }
 
 function reportCardHtml(report) {
@@ -695,6 +770,13 @@ function bindMenu() {
   el.sendFirstMessageBtn.addEventListener("click", sendMessageFromModal);
   el.cancelFirstMessageBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));
   el.messageModalCloseBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));
+
+  el.openManageActionsBtn.addEventListener("click", () => {
+    el.manageActionsPanel.classList.remove("hidden");
+  });
+  el.reportManageModalCloseBtn.addEventListener("click", closeManageReportModal);
+  el.saveManageChangesBtn.addEventListener("click", handleSaveReportChanges);
+  el.deleteReportBtn.addEventListener("click", handleDeleteReport);
 }
 
 async function init() {
