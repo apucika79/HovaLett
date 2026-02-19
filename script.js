@@ -47,8 +47,46 @@ const categoryMap = {
   Ruházat: "Ruházat, táska",
 };
 
-const greenBusIcon = L.icon({ iconUrl: "bus-green.png", iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] });
-const redBusIcon = L.icon({ iconUrl: "bus-red.png", iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] });
+const markerIconConfig = { iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35] };
+let greenBusIcon = L.icon({ iconUrl: "bus-green.png", ...markerIconConfig });
+let redBusIcon = L.icon({ iconUrl: "bus-red.png", ...markerIconConfig });
+
+function buildTransparentIcon(iconUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(L.icon({ iconUrl, ...markerIconConfig }));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+        if (r >= 245 && g >= 245 && b >= 245) pixels[i + 3] = 0;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      resolve(L.icon({ iconUrl: canvas.toDataURL("image/png"), ...markerIconConfig }));
+    };
+    img.onerror = () => resolve(L.icon({ iconUrl, ...markerIconConfig }));
+    img.src = iconUrl;
+  });
+}
+
+async function enhanceMarkerIcons() {
+  [greenBusIcon, redBusIcon] = await Promise.all([
+    buildTransparentIcon("bus-green.png"),
+    buildTransparentIcon("bus-red.png"),
+  ]);
+}
 
 const map = L.map("map").setView([47.4979, 19.0402], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
@@ -615,6 +653,7 @@ async function init() {
   bindMenu();
   initFilters();
   initReportFlow();
+  await enhanceMarkerIcons();
 
   state.supabaseOnline = await checkSupabaseConnection();
   await hydrateAuth();
