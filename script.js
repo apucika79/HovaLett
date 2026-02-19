@@ -102,7 +102,6 @@ const el = {
   reportItems: document.getElementById("reportItems"),
   markerForm: document.getElementById("markerForm"),
   descriptionInput: document.getElementById("descriptionInput"),
-  contactInput: document.getElementById("contactInput"),
   photoInput: document.getElementById("photoInput"),
   photoInputHelp: document.getElementById("photoInputHelp"),
   routeInput: document.getElementById("routeInput"),
@@ -235,7 +234,6 @@ function resetReportFlow() {
   state.reportType = null;
   el.routeInput.value = "";
   el.descriptionInput.value = "";
-  el.contactInput.value = "";
   el.photoInput.value = "";
   state.selectedUploadFiles = [];
   el.photoInputHelp.textContent = `Maximum ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`;
