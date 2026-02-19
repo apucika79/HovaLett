@@ -49,21 +49,6 @@ create policy "bejelentesek_select_own"
   to authenticated
   using (auth.uid() = user_id);
 
--- saját bejelentést módosíthatja
-drop policy if exists "bejelentesek_update_own" on public.bejelentesek;
-create policy "bejelentesek_update_own"
-  on public.bejelentesek for update
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
--- saját bejelentést törölheti
-drop policy if exists "bejelentesek_delete_own" on public.bejelentesek;
-create policy "bejelentesek_delete_own"
-  on public.bejelentesek for delete
-  to authenticated
-  using (auth.uid() = user_id);
-
 -- opcionális: publikus térképhez olvasható bejelentések
 drop policy if exists "bejelentesek_select_public" on public.bejelentesek;
 create policy "bejelentesek_select_public"
