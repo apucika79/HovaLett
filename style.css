@@ -247,3 +247,32 @@ button {
 .day-label {
   margin: 14px 0 0;
 }
+
+.my-report-item {
+  cursor: pointer;
+}
+
+.my-report-item:hover {
+  box-shadow: 0 0 0 2px #4CAF50;
+}
+
+.manage-action-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+#manageActionsPanel {
+  margin-top: 14px;
+  text-align: left;
+}
+
+#manageActionsPanel label {
+  display: block;
+  font-weight: 600;
+  margin: 10px 0 6px;
+}
+
+.danger-btn {
+  background-color: #d32f2f;
+}

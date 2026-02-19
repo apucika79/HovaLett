@@ -172,6 +172,27 @@
     </div>
   </div>
 
+  <div id="reportManageModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close-btn" id="reportManageModalCloseBtn" aria-label="Bezárás">✕</button>
+      <h3>Hirdetésem részletei</h3>
+      <div id="reportManageDetails" class="report-manage-details"></div>
+      <div class="manage-action-row">
+        <button id="openManageActionsBtn" class="modal-primary-btn" type="button">Jelentés kezelése</button>
+      </div>
+      <div id="manageActionsPanel" class="hidden">
+        <label for="manageReportTitleInput">Cím</label>
+        <input id="manageReportTitleInput" type="text" placeholder="Pl. Járat: 7-es" />
+        <label for="manageReportDescInput">Leírás</label>
+        <textarea id="manageReportDescInput" rows="4" placeholder="Leírás módosítása..."></textarea>
+        <div class="modal-actions">
+          <button id="saveManageChangesBtn" class="modal-primary-btn" type="button">Módosítás mentése</button>
+          <button id="deleteReportBtn" class="danger-btn" type="button">Törlés</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
