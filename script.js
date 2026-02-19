@@ -83,8 +83,8 @@ const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 const MAX_DESCRIPTION_LENGTH = 150;
 const MIN_MARKER_DISTANCE_METERS = 12;
 const MAX_UPLOAD_IMAGES = 3;
-const REPORT_CODE_DIGITS = 5;
-const REPORT_CODE_MAX_ATTEMPTS = 20;
+const REPORT_CODE_LENGTH = 7;
+const REPORT_CODE_MAX_ATTEMPTS = 50;
 
 const map = L.map("map").setView([47.4979, 19.0402], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
@@ -269,10 +269,22 @@ function getCategoryPrefix(category) {
   return firstTwo.padEnd(2, "X");
 }
 
-function getRandomDigits(length) {
+function getRandomCodeSuffix(length) {
+  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let buffer = "";
+
+  const cryptoObj = window.crypto || window.msCrypto;
+  if (cryptoObj?.getRandomValues) {
+    const randomValues = new Uint32Array(length);
+    cryptoObj.getRandomValues(randomValues);
+    for (let i = 0; i < length; i += 1) {
+      buffer += alphabet[randomValues[i] % alphabet.length];
+    }
+    return buffer;
+  }
+
   for (let i = 0; i < length; i += 1) {
-    buffer += Math.floor(Math.random() * 10);
+    buffer += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
   return buffer;
 }
@@ -280,7 +292,7 @@ function getRandomDigits(length) {
 function generateReportCodeCandidate(tipus, category) {
   const codePrefix = `${getReportTypePrefix(tipus)}${getCategoryPrefix(category)}`;
 
-  return `${codePrefix}${getRandomDigits(REPORT_CODE_DIGITS)}`;
+  return `${codePrefix}${getRandomCodeSuffix(REPORT_CODE_LENGTH)}`;
 }
 
 function isReportCodeConflict(error) {
@@ -288,7 +300,7 @@ function isReportCodeConflict(error) {
   if (error.code === "23505") return true;
 
   const message = String(error.message || "");
-  return message.includes("bejelentesek_report_code_key") || message.includes("report_code");
+  return message.includes("bejelentesek_report_code_key") || message.includes("duplicate key value");
 }
 
 async function createReportWithUniqueCode(payloadBase) {
