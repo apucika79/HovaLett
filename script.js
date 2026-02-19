@@ -585,6 +585,37 @@ function closeReportDetailModal() {
   el.reportDetailBody.innerHTML = "";
 }
 
+function bindGlobalCloseButtons() {
+  document.addEventListener("click", (event) => {
+    const closeBtn = event.target.closest(".modal-close-btn");
+    if (!closeBtn) return;
+
+    if (closeBtn.dataset.flowClose === "true") {
+      resetReportFlow();
+      return;
+    }
+
+    const parentModal = closeBtn.closest(".modal");
+    if (!parentModal) return;
+
+    if (parentModal === el.reportDetailModal) {
+      closeReportDetailModal();
+      return;
+    }
+    if (parentModal === el.imageViewerModal) {
+      closeImageViewer();
+      return;
+    }
+    if (parentModal === el.reportManageModal) {
+      closeManageReportModal();
+      return;
+    }
+
+    parentModal.classList.add("hidden");
+    parentModal.classList.remove("show");
+  });
+}
+
 function openReportDetailModal(report) {
   el.reportDetailBody.innerHTML = reportDetailHtml(report);
 
@@ -1113,6 +1144,7 @@ async function init() {
   initFilters();
   initReportFlow();
   setupImageViewerEvents();
+  bindGlobalCloseButtons();
 
   state.supabaseOnline = await checkSupabaseConnection();
   await hydrateAuth();
