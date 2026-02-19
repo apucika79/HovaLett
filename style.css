@@ -128,6 +128,13 @@ button {
   background: #607d8b;
 }
 
+.report-detail-modal-content {
+  width: fit-content;
+  max-width: min(92vw, 560px);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
 .popup-image-ribbon {
   margin-top: 12px;
   display: flex;
