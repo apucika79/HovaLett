@@ -1100,7 +1100,6 @@ async function saveReport() {
     leiras: el.descriptionInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH),
     lat: savedCoords.lat,
     lng: savedCoords.lng,
-    created_at: (state.reportDateTime || new Date()).toISOString(),
     image_url: imageUrls.length ? JSON.stringify(imageUrls) : null,
     status: "aktiv",
   };
