@@ -400,6 +400,10 @@ async function handleSaveReportChanges() {
     .eq("user_id", state.user.id);
 
   if (error) {
+    if (String(error.message || "").toLowerCase().includes("row-level security")) {
+      alert("Módosítás sikertelen: hiányzik a bejelentesek_update_own RLS policy a Supabase-ban.");
+      return;
+    }
     alert(`Módosítás sikertelen: ${error.message}`);
     return;
   }
@@ -422,6 +426,10 @@ async function handleDeleteReport() {
     .eq("user_id", state.user.id);
 
   if (error) {
+    if (String(error.message || "").toLowerCase().includes("row-level security")) {
+      alert("Törlés sikertelen: hiányzik a bejelentesek_delete_own RLS policy a Supabase-ban.");
+      return;
+    }
     alert(`Törlés sikertelen: ${error.message}`);
     return;
   }
