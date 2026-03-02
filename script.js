@@ -42,6 +42,7 @@ const state = {
   isPlacingMarker: false,
   isReportFlowActive: false,
   suppressMarkerDetailUntil: 0,
+  skipNextMarkerDetailReportId: null,
   selectedUploadFiles: [],
 };
 
@@ -182,6 +183,7 @@ function stopFocusedReportJump() {
   state.reportFocus.reportId = null;
   state.reportFocus.marker = null;
   state.reportFocus.previousView = null;
+  state.skipNextMarkerDetailReportId = null;
   syncFocusedMarkerState();
 }
 
@@ -204,6 +206,7 @@ function focusReportOnMap(reportId) {
   const maxZoom = Number.isFinite(map.getMaxZoom()) ? map.getMaxZoom() : 19;
   const targetZoom = Math.min(maxZoom, Math.max(map.getZoom() + 2, 17));
   state.suppressMarkerDetailUntil = Date.now() + 800;
+  state.skipNextMarkerDetailReportId = reportId;
   map.flyTo(marker.getLatLng(), targetZoom, { duration: 0.6 });
 
   syncFocusedMarkerState();
@@ -353,7 +356,9 @@ function updateVisibleItems() {
     });
     if (isHomeLikeView) {
       const detailBtn = card.querySelector("[data-focus-report]");
-      detailBtn?.addEventListener("click", () => {
+      detailBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         focusReportOnMap(report.id);
       });
     }
@@ -839,6 +844,10 @@ function renderMapMarkers() {
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.on("click", () => {
       if (Date.now() < state.suppressMarkerDetailUntil) return;
+      if (state.skipNextMarkerDetailReportId === report.id) {
+        state.skipNextMarkerDetailReportId = null;
+        return;
+      }
       if (state.isReportFlowActive) {
         return;
       }
