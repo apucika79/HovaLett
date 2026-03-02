@@ -177,6 +177,18 @@ button {
   z-index: 10000;
 }
 
+#imageViewerModal {
+  z-index: 11000;
+}
+
+#reportDetailModal.modal-layer-muted {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+#reportDetailModal.modal-layer-muted .modal-content {
+  opacity: 0.55;
+}
+
 #reportDetailBody {
   display: flex;
   justify-content: center;
