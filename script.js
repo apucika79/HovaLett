@@ -359,7 +359,7 @@ function updateVisibleItems() {
       detailBtn?.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        focusReportOnMap(report.id);
+        openReportDetailModal(report);
       });
     }
     el.reportItems.appendChild(card);
@@ -670,6 +670,7 @@ function reportDetailHtml(report) {
     : '<p class="popup-no-image">Ehhez a bejelentéshez nincs feltöltött kép.</p>';
 
   const reportButton = `<button class="modal-secondary-btn popup-action-btn" data-report-issue="${report.id}" type="button">Jelentés</button>`;
+  const mapFocusButton = `<button class="modal-secondary-btn popup-action-btn" data-focus-report="${report.id}" type="button">Mutasd a térképen</button>`;
   const msgButton = state.user && state.user.id !== report.user_id
     ? `<button class="claim-btn popup-action-btn" data-message-report="${report.id}" type="button">Üzenetküldés</button>`
     : `<button class="claim-btn popup-action-btn" disabled type="button">Üzenetküldés</button>`;
@@ -678,7 +679,7 @@ function reportDetailHtml(report) {
     <div class="marker-popup-content">
       ${reportCardHtml(report)}
       ${imageRibbon}
-      <div class="popup-action-row">${reportButton}${msgButton}</div>
+      <div class="popup-action-row">${mapFocusButton}${reportButton}${msgButton}</div>
     </div>
   `;
 }
@@ -741,6 +742,15 @@ function openReportDetailModal(report) {
   const messageBtn = el.reportDetailBody.querySelector(`[data-message-report="${report.id}"]`);
   if (messageBtn) {
     messageBtn.addEventListener("click", () => openFirstMessageModal(report));
+  }
+
+  const mapFocusBtn = el.reportDetailBody.querySelector(`[data-focus-report="${report.id}"]`);
+  if (mapFocusBtn) {
+    mapFocusBtn.addEventListener("click", () => {
+      const focused = focusReportOnMap(report.id);
+      if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
+      closeReportDetailModal();
+    });
   }
 
   const reportIssueBtn = el.reportDetailBody.querySelector(`[data-report-issue="${report.id}"]`);
