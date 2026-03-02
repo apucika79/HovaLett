@@ -374,10 +374,7 @@ function updateVisibleItems() {
 
       const mapBtn = card.querySelector("[data-map-report]");
       mapBtn?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const focused = focusReportOnMap(report.id);
-        if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
+        handleShowOnMap(event, report.id);
       });
     }
     el.reportItems.appendChild(card);
@@ -710,6 +707,13 @@ function closeReportDetailModal() {
   el.reportDetailBody.innerHTML = "";
 }
 
+function handleShowOnMap(event, reportId) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  const focused = focusReportOnMap(reportId);
+  if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
+}
+
 function handleModalCloseButton(closeBtn) {
   if (!closeBtn) return;
 
@@ -767,10 +771,8 @@ function openReportDetailModal(report) {
 
   const mapFocusBtn = el.reportDetailBody.querySelector(`[data-focus-report="${report.id}"]`);
   if (mapFocusBtn) {
-    mapFocusBtn.addEventListener("click", () => {
-      const focused = focusReportOnMap(report.id);
-      if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
-      closeReportDetailModal();
+    mapFocusBtn.addEventListener("click", (event) => {
+      handleShowOnMap(event, report.id);
     });
   }
 
