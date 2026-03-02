@@ -353,19 +353,22 @@ function updateVisibleItems() {
     card.innerHTML = reportCardHtml(report, {
       includeDescription: !isHomeLikeView,
       includeDetailButton: isHomeLikeView,
+      includeMapButton: isHomeView,
     });
     if (isHomeLikeView) {
-      const detailBtn = card.querySelector("[data-focus-report]");
+      const detailBtn = card.querySelector(".report-details-btn");
       detailBtn?.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        if (isHomeView) {
-          const focused = focusReportOnMap(report.id);
-          if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
-          return;
-        }
-
         openReportDetailModal(report);
+      });
+
+      const mapBtn = card.querySelector("[data-map-report]");
+      mapBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const focused = focusReportOnMap(report.id);
+        if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
       });
     }
     el.reportItems.appendChild(card);
@@ -439,13 +442,16 @@ async function handleDeleteReport() {
 }
 
 function reportCardHtml(report, options = {}) {
-  const { includeDescription = true, includeDetailButton = false } = options;
+  const { includeDescription = true, includeDetailButton = false, includeMapButton = false } = options;
   const imageUrls = getImageUrls(report.image_url);
   const descriptionRow = includeDescription
     ? `<strong>Leírás:</strong> ${report.leiras || "-"}<br>`
     : "";
   const detailButton = includeDetailButton
     ? `<button type="button" class="report-details-btn" data-focus-report="${report.id}">Részletek</button>`
+    : "";
+  const mapButton = includeMapButton
+    ? `<button type="button" class="report-map-btn" data-map-report="${report.id}">Mutasd a térképen</button>`
     : "";
 
   return `
@@ -454,7 +460,7 @@ function reportCardHtml(report, options = {}) {
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
     ${descriptionRow}
-    ${detailButton}
+    <div class="report-card-actions">${detailButton}${mapButton}</div>
   `;
 }
 

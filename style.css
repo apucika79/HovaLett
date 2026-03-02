@@ -88,6 +88,19 @@ button {
   background-color: #2196f3;
 }
 
+.report-card-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.report-map-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: #607d8b;
+}
+
 .leaflet-marker-icon.is-pulsing-marker {
   animation: marker-pulse 0.9s ease-in-out infinite;
   will-change: filter;
