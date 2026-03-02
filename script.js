@@ -359,6 +359,12 @@ function updateVisibleItems() {
       detailBtn?.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (isHomeView) {
+          const focused = focusReportOnMap(report.id);
+          if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
+          return;
+        }
+
         openReportDetailModal(report);
       });
     }
