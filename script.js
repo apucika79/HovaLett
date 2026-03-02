@@ -41,6 +41,7 @@ const state = {
   },
   isPlacingMarker: false,
   isReportFlowActive: false,
+  suppressMarkerDetailUntil: 0,
   selectedUploadFiles: [],
 };
 
@@ -202,6 +203,7 @@ function focusReportOnMap(reportId) {
 
   const maxZoom = Number.isFinite(map.getMaxZoom()) ? map.getMaxZoom() : 19;
   const targetZoom = Math.min(maxZoom, Math.max(map.getZoom() + 2, 17));
+  state.suppressMarkerDetailUntil = Date.now() + 800;
   map.flyTo(marker.getLatLng(), targetZoom, { duration: 0.6 });
 
   syncFocusedMarkerState();
@@ -836,6 +838,7 @@ function renderMapMarkers() {
     const icon = report.tipus === "talalt" ? greenDefaultIcon : redDefaultIcon;
     const marker = L.marker([report.lat, report.lng], { icon });
     marker.on("click", () => {
+      if (Date.now() < state.suppressMarkerDetailUntil) return;
       if (state.isReportFlowActive) {
         return;
       }
