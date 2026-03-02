@@ -710,6 +710,11 @@ function closeReportDetailModal() {
 function handleShowOnMap(event, reportId) {
   event?.preventDefault();
   event?.stopPropagation();
+
+  if (!el.reportDetailModal.classList.contains("hidden")) {
+    closeReportDetailModal();
+  }
+
   const focused = focusReportOnMap(reportId);
   if (!focused) alert("Ehhez a bejelentéshez nincs térképes pozíció.");
 }
