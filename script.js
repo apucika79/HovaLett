@@ -154,12 +154,14 @@ let selectedOwnReport = null;
 const markerByReportId = new Map();
 
 function syncFocusedMarkerState() {
+  const hasFocusedMarker = Boolean(state.reportFocus.reportId);
+  map.getContainer().classList.toggle("has-focused-report", hasFocusedMarker);
+
   markerByReportId.forEach((marker, reportId) => {
     const markerElement = marker.getElement?.();
     if (!markerElement) return;
 
     const isFocusedMarker = state.reportFocus.reportId === reportId;
-    const hasFocusedMarker = Boolean(state.reportFocus.reportId);
     const shouldMuteMarker = state.isReportFlowActive || state.isPlacingMarker || (hasFocusedMarker && !isFocusedMarker);
 
     markerElement.classList.toggle("is-pulsing-marker", isFocusedMarker);

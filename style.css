@@ -112,6 +112,18 @@ button {
   transition: opacity 0.2s ease;
 }
 
+.leaflet-container.has-focused-report .leaflet-marker-icon {
+  pointer-events: none;
+}
+
+.leaflet-container.has-focused-report .leaflet-marker-icon.is-pulsing-marker {
+  pointer-events: auto;
+}
+
+.leaflet-marker-shadow {
+  pointer-events: none;
+}
+
 @keyframes marker-pulse {
   0%,
   100% {
