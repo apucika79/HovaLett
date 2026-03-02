@@ -868,7 +868,6 @@ function renderMapMarkers() {
       if (Date.now() < state.suppressMarkerDetailUntil) return;
       if (state.skipNextMarkerDetailReportId === report.id) {
         state.skipNextMarkerDetailReportId = null;
-        return;
       }
       if (state.isReportFlowActive) {
         return;
