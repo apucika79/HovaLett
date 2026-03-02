@@ -88,8 +88,15 @@ const MAX_UPLOAD_IMAGES = 3;
 const REPORT_CODE_LENGTH = 6;
 const REPORT_CODE_MAX_ATTEMPTS = 50;
 
-const map = L.map("map").setView([47.4979, 19.0402], 13);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap közreműködők" }).addTo(map);
+const MAP_MAX_ZOOM = 22;
+const MAP_NATIVE_TILE_MAX_ZOOM = 19;
+
+const map = L.map("map", { maxZoom: MAP_MAX_ZOOM }).setView([47.4979, 19.0402], 13);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap közreműködők",
+  maxNativeZoom: MAP_NATIVE_TILE_MAX_ZOOM,
+  maxZoom: MAP_MAX_ZOOM,
+}).addTo(map);
 
 const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_ANON_KEY)
   ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
