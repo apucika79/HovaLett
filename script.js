@@ -38,6 +38,7 @@ const state = {
     reportId: null,
     marker: null,
     previousView: null,
+    targetZoom: null,
   },
   isPlacingMarker: false,
   isReportFlowActive: false,
@@ -192,6 +193,7 @@ function stopFocusedReportJump() {
   state.reportFocus.reportId = null;
   state.reportFocus.marker = null;
   state.reportFocus.previousView = null;
+  state.reportFocus.targetZoom = null;
   state.skipNextMarkerDetailReportId = null;
   syncFocusedMarkerState();
 }
@@ -205,15 +207,22 @@ function focusReportOnMap(reportId) {
   const marker = markerByReportId.get(reportId);
   if (!marker) return false;
 
-  state.reportFocus.reportId = reportId;
-  state.reportFocus.marker = marker;
-  state.reportFocus.previousView = {
-    center: [map.getCenter().lat, map.getCenter().lng],
-    zoom: map.getZoom(),
-  };
+  const isSameFocusedReport = state.reportFocus.reportId === reportId;
+  if (!isSameFocusedReport) {
+    state.reportFocus.reportId = reportId;
+    state.reportFocus.marker = marker;
+    state.reportFocus.previousView = {
+      center: [map.getCenter().lat, map.getCenter().lng],
+      zoom: map.getZoom(),
+    };
 
-  const maxZoom = Number.isFinite(map.getMaxZoom()) ? map.getMaxZoom() : 19;
-  const targetZoom = Math.min(maxZoom, Math.max(map.getZoom() + 2, 17));
+    const maxZoom = Number.isFinite(map.getMaxZoom()) ? map.getMaxZoom() : 19;
+    state.reportFocus.targetZoom = Math.min(maxZoom, Math.max(map.getZoom() + 2, 17));
+  }
+
+  const targetZoom = Number.isFinite(state.reportFocus.targetZoom)
+    ? state.reportFocus.targetZoom
+    : map.getZoom();
   state.suppressMarkerDetailUntil = Date.now() + 800;
   state.skipNextMarkerDetailReportId = reportId;
   map.flyTo(marker.getLatLng(), targetZoom, { duration: 0.6 });
