@@ -471,21 +471,24 @@ button {
 }
 
 .image-viewer-content {
-  max-width: 900px;
-  width: min(95vw, 900px);
+  width: auto;
+  max-width: min(90vw, 980px);
+  padding: 18px;
 }
 
 .image-stage-wrap {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
   align-items: center;
   gap: 8px;
   margin-top: 10px;
 }
 
 .image-stage {
-  height: 65vh;
-  max-height: 680px;
+  width: auto;
+  height: auto;
+  max-width: min(78vw, 820px);
+  max-height: 70vh;
   overflow: hidden;
   border-radius: 10px;
   background: #111;
@@ -496,8 +499,8 @@ button {
 }
 
 #imageViewerImg {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: min(78vw, 820px);
+  max-height: 70vh;
   object-fit: contain;
   transform-origin: center;
   transition: transform 0.15s ease;
@@ -518,6 +521,10 @@ button {
 .image-counter {
   margin: 10px 0 0;
   font-weight: 700;
+}
+
+#imageViewerModal .modal-content {
+  text-align: center;
 }
 
 
