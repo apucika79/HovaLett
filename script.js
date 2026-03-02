@@ -492,6 +492,7 @@ function getImageUrls(rawValue) {
 function closeImageViewer() {
   el.imageViewerModal.classList.add("hidden");
   el.imageViewerImg.src = "";
+  el.reportDetailModal.classList.remove("modal-layer-muted");
 }
 
 function renderImageViewer() {
@@ -551,6 +552,9 @@ function openImageViewer(urls, startIndex = 0) {
   state.imageViewer.offsetX = 0;
   state.imageViewer.offsetY = 0;
   renderImageViewer();
+  if (!el.reportDetailModal.classList.contains("hidden")) {
+    el.reportDetailModal.classList.add("modal-layer-muted");
+  }
   el.imageViewerModal.classList.remove("hidden");
 }
 
