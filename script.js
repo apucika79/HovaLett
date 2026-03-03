@@ -454,7 +454,11 @@ function updateVisibleItems() {
 
 function updateMenuViewState() {
   const isMyReports = state.viewMode === "myReports";
-  const isMessages = state.viewMode === "messages";
+  const isMessageOnlyProfileView =
+    !el.profileView.classList.contains("hidden") &&
+    !el.messagesSection.classList.contains("hidden") &&
+    el.myReportsSection.classList.contains("hidden");
+  const isMessages = state.viewMode === "messages" || isMessageOnlyProfileView;
   const isHome = state.viewMode === "home";
   el.myReportsBtn.classList.toggle("active-menu-btn", isMyReports);
   el.myMessagesBtn.classList.toggle("active-menu-btn", isMessages);
