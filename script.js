@@ -1208,7 +1208,7 @@ function showProfile() {
   state.viewMode = "messages";
   el.mainContainer.classList.add("hidden");
   el.bejelentesBox.classList.add("hidden");
-  el.valasztoBox.classList.add("hidden");
+  if (el.valasztoBox) el.valasztoBox.classList.add("hidden");
   el.profileView.classList.remove("hidden");
   el.profileUserInfo.textContent = `${state.user.email}`;
 
