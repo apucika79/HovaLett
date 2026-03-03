@@ -117,6 +117,13 @@ button {
   background-color: #607d8b;
 }
 
+.report-manage-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: #455a64;
+}
+
+
 .leaflet-marker-icon.is-pulsing-marker {
   animation: marker-pulse 0.9s ease-in-out infinite;
   will-change: filter;
