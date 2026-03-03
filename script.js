@@ -47,6 +47,7 @@ const state = {
   selectedUploadFiles: [],
   manageImageUrls: [],
   managePendingFiles: [],
+  readMessageIds: new Set(),
 };
 
 const typeToLabel = {
@@ -108,6 +109,10 @@ const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_ANON_KEY)
 const authPreferences = {
   rememberDevice: "hovalett.rememberDevice",
   stayLoggedIn: "hovalett.stayLoggedIn",
+};
+
+const messagePreferences = {
+  readMessageIds: "hovalett.readMessageIds",
 };
 
 const el = {
@@ -358,6 +363,94 @@ function normalizeReport(report) {
     lat: Number.isFinite(lat) ? lat : null,
     lng: Number.isFinite(lng) ? lng : null,
   };
+}
+
+function loadReadMessageIds() {
+  try {
+    const raw = localStorage.getItem(messagePreferences.readMessageIds);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map((id) => Number(id)).filter((id) => Number.isFinite(id)));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistReadMessageIds() {
+  try {
+    localStorage.setItem(messagePreferences.readMessageIds, JSON.stringify([...state.readMessageIds]));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function markMessageAsRead(messageId) {
+  const normalizedId = Number(messageId);
+  if (!Number.isFinite(normalizedId) || state.readMessageIds.has(normalizedId)) return;
+  state.readMessageIds.add(normalizedId);
+  persistReadMessageIds();
+}
+
+function getReportPreview(report) {
+  if (!report) {
+    return {
+      imageUrl: "",
+      title: "Hirdetés nem elérhető",
+      subtitle: "Lehet, hogy már törölték vagy privát.",
+    };
+  }
+
+  const imageUrls = getImageUrls(report.image_url);
+  return {
+    imageUrl: imageUrls[0] || "",
+    title: report.cim || "Névtelen hirdetés",
+    subtitle: `#${report.report_code || report.id || "-"}`,
+  };
+}
+
+function renderMessageRows(messages = []) {
+  if (!messages.length) return "<p>Nincs üzenet.</p>";
+
+  const reportById = new Map(state.reports.map((report) => [Number(report.id), report]));
+  const groupedByReport = new Map();
+  const sortedMessages = [...messages].sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime();
+    const timeB = new Date(b.created_at).getTime();
+    if (timeA !== timeB) return timeA - timeB;
+    return Number(a.id || 0) - Number(b.id || 0);
+  });
+
+  sortedMessages.forEach((msg) => {
+    const reportId = Number(msg.report_id);
+    if (!groupedByReport.has(reportId)) groupedByReport.set(reportId, []);
+    groupedByReport.get(reportId).push(msg);
+  });
+
+  const groupedEntries = [...groupedByReport.entries()].sort(([, msgsA], [, msgsB]) => {
+    const latestA = msgsA[msgsA.length - 1];
+    const latestB = msgsB[msgsB.length - 1];
+    return new Date(latestB.created_at).getTime() - new Date(latestA.created_at).getTime();
+  });
+
+  return `<div class="message-table">${groupedEntries.map(([reportId, reportMessages]) => {
+    const report = reportById.get(reportId);
+    const preview = getReportPreview(report);
+    return reportMessages.map((msg, index) => {
+      const isIncoming = msg.to_user_id === state.user.id;
+      const isUnread = isIncoming && !state.readMessageIds.has(Number(msg.id));
+      const unreadClass = isUnread ? "is-unread" : "";
+      const threadClass = index > 0 ? "is-thread-reply" : "";
+      const previewCell = index === 0
+        ? `<div class="message-col-preview"><div class="message-report-preview">${preview.imageUrl ? `<img src="${preview.imageUrl}" alt="Hirdetés előnézet">` : "<div class=\"message-no-image\">Nincs kép</div>"}<div class="message-report-meta"><strong>${preview.title}</strong><small>${preview.subtitle}</small></div></div></div>`
+        : '<div class="message-col-preview message-col-preview-spacer"></div>';
+      const replyButton = isIncoming
+        ? `<button class="claim-btn message-reply-btn" data-reply-report="${msg.report_id}" data-reply-user="${msg.from_user_id}">Válasz</button>`
+        : "";
+
+      return `<div class="message-row ${threadClass} ${unreadClass}" data-message-id="${msg.id}" data-mark-read="${isIncoming ? "1" : "0"}">${previewCell}<div class="message-col-time">${new Date(msg.created_at).toLocaleString("hu-HU")}</div><div class="message-col-body"><p>${msg.body}</p>${replyButton}</div></div>`;
+    }).join("");
+  }).join("")}</div>`;
 }
 
 function isReportVisible(report) {
@@ -1183,10 +1276,7 @@ async function refreshProfileData(options = {}) {
     if (messagesError) {
       el.messageList.innerHTML = "<p>Az üzenetek betöltése sikertelen.</p>";
     } else {
-      el.messageList.innerHTML = (messages || []).map((msg) => {
-        const inOut = msg.from_user_id === state.user.id ? "Kimenő" : "Bejövő";
-        return `<div class="report-card"><strong>${inOut}</strong> #${msg.report_id}<br>${msg.body}<br><small>${new Date(msg.created_at).toLocaleString("hu-HU")}</small>${msg.to_user_id !== state.user.id ? "" : `<br><button class=\"claim-btn\" data-reply-report=\"${msg.report_id}\" data-reply-user=\"${msg.from_user_id}\">Válasz</button>`}</div>`;
-      }).join("") || "<p>Nincs üzenet.</p>";
+      el.messageList.innerHTML = renderMessageRows(messages || []);
     }
   }
 
@@ -1194,6 +1284,15 @@ async function refreshProfileData(options = {}) {
     btn.addEventListener("click", () => {
       state.currentReportForMessage = { id: Number(btn.dataset.replyReport), user_id: btn.dataset.replyUser };
       openFirstMessageModal(state.currentReportForMessage, true);
+    });
+  });
+  document.querySelectorAll("[data-mark-read='1']").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      const id = Number(row.dataset.messageId);
+      if (!Number.isFinite(id)) return;
+      markMessageAsRead(id);
+      row.classList.remove("is-unread");
     });
   });
 }
@@ -1767,6 +1866,7 @@ window.addEventListener("beforeunload", async () => {
 });
 
 async function init() {
+  state.readMessageIds = loadReadMessageIds();
   bindMenu();
   initFilters();
   initReportFlow();
