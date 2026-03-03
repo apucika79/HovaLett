@@ -580,6 +580,7 @@ function updateMenuViewState() {
   if (el.leftPanel) {
     el.leftPanel.classList.toggle("hidden", isMyReports);
   }
+  document.body.classList.toggle("messages-view", isMessages);
 }
 
 function refreshMapLayout() {
