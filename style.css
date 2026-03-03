@@ -521,9 +521,9 @@ body.messages-view #messagesSection {
 
 .message-row {
   display: grid;
-  grid-template-columns: minmax(220px, 260px) 1fr;
+  grid-template-columns: 56px minmax(120px, 170px) minmax(160px, 220px) minmax(150px, 190px) minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: start;
+  align-items: center;
   background: #fff;
   border: 1px solid #dbe4ef;
   border-radius: 10px;
@@ -540,19 +540,12 @@ body.messages-view #messagesSection {
   margin-left: 18px;
 }
 
-.message-col-preview-spacer {
-  border-left: 3px solid #dbeafe;
-  min-height: 56px;
+.message-col-image {
+  width: 52px;
+  height: 52px;
 }
 
-.message-report-preview {
-  display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 10px;
-  align-items: center;
-}
-
-.message-report-preview img,
+.message-col-image img,
 .message-no-image {
   width: 52px;
   height: 52px;
@@ -572,37 +565,36 @@ body.messages-view #messagesSection {
   box-sizing: border-box;
 }
 
-.message-report-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.message-col-category,
+.message-col-title,
+.message-col-time,
+.message-col-body {
   min-width: 0;
 }
 
-.message-report-meta strong,
-.message-report-meta small {
+.message-col-category,
+.message-col-title,
+.message-col-time,
+.message-col-body p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.message-report-title {
-  font-size: 14px;
+.message-col-category {
+  font-size: 12px;
+  color: #334155;
 }
 
 .message-col-time {
   color: #334155;
   font-size: 12px;
-  white-space: nowrap;
 }
 
 .message-col-body p {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: 12px;
   line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .message-row:hover .message-col-body p,
@@ -613,19 +605,12 @@ body.messages-view #messagesSection {
 
 
 .message-reply-btn {
-  margin-left: auto;
   font-size: 12px;
 }
 
-.message-meta-row {
+.message-col-action {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.message-col-body {
-  min-width: 0;
+  justify-content: flex-end;
 }
 
 .kat-grid {
@@ -826,7 +811,16 @@ body.messages-view #messagesSection {
 
 @media (max-width: 900px) {
   .message-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 52px 1fr;
+    align-items: start;
+  }
+
+  .message-col-category,
+  .message-col-title,
+  .message-col-time,
+  .message-col-body,
+  .message-col-action {
+    grid-column: 2;
   }
 
   .message-row.is-thread-reply {
