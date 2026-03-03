@@ -146,8 +146,6 @@ const el = {
   messageModalCloseBtn: document.getElementById("messageModalCloseBtn"),
   reportManageModal: document.getElementById("reportManageModal"),
   reportManageModalCloseBtn: document.getElementById("reportManageModalCloseBtn"),
-  reportManageDetails: document.getElementById("reportManageDetails"),
-  openManageActionsBtn: document.getElementById("openManageActionsBtn"),
   manageActionsPanel: document.getElementById("manageActionsPanel"),
   manageReportTitleInput: document.getElementById("manageReportTitleInput"),
   manageReportDescInput: document.getElementById("manageReportDescInput"),
@@ -540,8 +538,7 @@ function openManageReportModal(report) {
   state.manageImageUrls = getImageUrls(report.image_url);
   state.managePendingFiles = [];
   el.manageImageInput.value = "";
-  el.reportManageDetails.innerHTML = reportCardHtml(report);
-  el.manageActionsPanel.classList.add("hidden");
+  el.manageActionsPanel.classList.remove("hidden");
   el.manageReportTitleInput.value = report.cim || "";
   el.manageReportDescInput.value = report.leiras || "";
   renderManageImageList();
@@ -555,7 +552,6 @@ function closeManageReportModal() {
   state.managePendingFiles = [];
   el.manageImageInput.value = "";
   el.reportManageModal.classList.add("hidden");
-  el.manageActionsPanel.classList.add("hidden");
 }
 
 async function handleSaveReportChanges() {
@@ -1701,9 +1697,6 @@ function bindMenu() {
   el.cancelFirstMessageBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));
   el.messageModalCloseBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));
 
-  el.openManageActionsBtn.addEventListener("click", () => {
-    el.manageActionsPanel.classList.remove("hidden");
-  });
   el.reportManageModalCloseBtn.addEventListener("click", closeManageReportModal);
   el.saveManageChangesBtn.addEventListener("click", handleSaveReportChanges);
   el.deleteReportBtn.addEventListener("click", handleDeleteReport);
