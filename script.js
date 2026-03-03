@@ -578,7 +578,7 @@ async function handleSaveReportChanges() {
 
   const imageUrls = [...state.manageImageUrls, ...uploadedUrls].slice(0, MAX_UPLOAD_IMAGES);
 
-  const { error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("bejelentesek")
     .update({
       cim: newTitle || "Utcán/épületben",
@@ -586,10 +586,16 @@ async function handleSaveReportChanges() {
       image_url: imageUrls.length ? JSON.stringify(imageUrls) : null,
     })
     .eq("id", selectedOwnReport.id)
-    .eq("user_id", state.user.id);
+    .eq("user_id", state.user.id)
+    .select("id");
 
   if (error) {
     alert(`Módosítás sikertelen: ${error.message}`);
+    return;
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    alert("Módosítás nem történt (nincs jogosultság, vagy a bejelentés már nem létezik).");
     return;
   }
 
@@ -604,14 +610,20 @@ async function handleDeleteReport() {
   const ok = window.confirm("Biztosan törlöd ezt a bejelentést?");
   if (!ok) return;
 
-  const { error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("bejelentesek")
     .delete()
     .eq("id", selectedOwnReport.id)
-    .eq("user_id", state.user.id);
+    .eq("user_id", state.user.id)
+    .select("id");
 
   if (error) {
     alert(`Törlés sikertelen: ${error.message}`);
+    return;
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    alert("Törlés nem történt (nincs jogosultság, vagy a bejelentés már törölve lett).");
     return;
   }
 
