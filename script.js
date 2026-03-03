@@ -350,13 +350,35 @@ function isReportVisible(report) {
   return state.activeTypes.has(report.tipus) && state.activeCategories.has(normalizeCategory(report.kategoria));
 }
 
+function toMinutePrecisionTimestamp(value) {
+  const date = new Date(value);
+  const timestamp = date.getTime();
+  if (!Number.isFinite(timestamp)) return Number.NEGATIVE_INFINITY;
+
+  date.setSeconds(0, 0);
+  return date.getTime();
+}
+
+function sortReportsByNewestMinute(reports) {
+  return [...reports].sort((a, b) => {
+    const bTime = toMinutePrecisionTimestamp(b.created_at);
+    const aTime = toMinutePrecisionTimestamp(a.created_at);
+    if (bTime !== aTime) return bTime - aTime;
+
+    const bId = Number(b.id);
+    const aId = Number(a.id);
+    if (Number.isFinite(bId) && Number.isFinite(aId)) return bId - aId;
+    return String(b.id || "").localeCompare(String(a.id || ""));
+  });
+}
+
 function getReportsForCurrentView() {
   if (state.viewMode === "myReports") {
     if (!state.user) return [];
-    return state.reports.filter((report) => report.user_id === state.user.id);
+    return sortReportsByNewestMinute(state.reports.filter((report) => report.user_id === state.user.id));
   }
 
-  return state.reports.filter(isReportVisible);
+  return sortReportsByNewestMinute(state.reports.filter(isReportVisible));
 }
 
 function updateVisibleItems() {
