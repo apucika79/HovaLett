@@ -8,20 +8,38 @@ body {
 .page-header {
   background-color: #f3f6fb;
   border-bottom: 1px solid #dce4ef;
-  padding: 16px 0 10px;
+  padding: 8px 16px 6px;
 }
 
 h1 { margin-top: 20px; }
-.button-row { margin: 20px 0; }
+
+.header-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  max-width: 1400px;
+  margin: 0 auto;
+  overflow-x: auto;
+}
+
+.button-row {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
 
 button {
-  padding: 10px 20px;
-  margin: 0 10px;
-  font-size: 16px;
+  padding: 8px 14px;
+  margin: 0;
+  font-size: 14px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   color: white;
+  white-space: nowrap;
 }
 
 .menu-btn.active-menu-btn {
@@ -425,10 +443,12 @@ button {
 
 #topMenu {
   background-color: transparent;
-  padding: 4px 20px;
+  padding: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 16px;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .menu-btn {
@@ -446,7 +466,19 @@ button {
   box-shadow: 0 0 0 2px #bfdbfe inset;
   transform: translateY(-1px);
 }
-.logged-user { align-self: center; }
+.logged-user {
+  align-self: center;
+  font-size: 13px;
+  color: #334155;
+  white-space: nowrap;
+}
+
+#supabaseStatus {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 11px;
+}
 
 #profileView {
   max-width: 1400px;
