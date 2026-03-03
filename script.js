@@ -1245,7 +1245,15 @@ async function loadReports() {
 }
 
 async function refreshProfileData(options = {}) {
-  if (!state.user || !state.supabaseOnline) return;
+  if (!state.user) return;
+
+  if (!state.supabaseOnline) {
+    const offlineMessage = "A profil adatok most nem tölthetők be, mert nincs Supabase kapcsolat.";
+    if (el.myReportsList) el.myReportsList.innerHTML = `<p>${offlineMessage}</p>`;
+    if (el.messageList) el.messageList.innerHTML = `<p>${offlineMessage}</p>`;
+    return;
+  }
+
   const shouldLoadReports = options.loadReports ?? true;
   const shouldLoadMessages = options.loadMessages ?? true;
 
