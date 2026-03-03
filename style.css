@@ -513,7 +513,7 @@ body.messages-view #profileView {
 
 .message-row {
   display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(145px, 175px) 1fr;
+  grid-template-columns: minmax(220px, 260px) 1fr;
   gap: 12px;
   align-items: start;
   background: #fff;
@@ -586,11 +586,10 @@ body.messages-view #profileView {
   color: #334155;
   font-size: 12px;
   white-space: nowrap;
-  padding-top: 2px;
 }
 
 .message-col-body p {
-  margin: 2px 0 0;
+  margin: 6px 0 0;
   font-size: 12px;
   line-height: 1.35;
   overflow: hidden;
@@ -606,9 +605,19 @@ body.messages-view #profileView {
 
 
 .message-reply-btn {
-  margin-top: 6px;
-  align-self: flex-start;
+  margin-left: auto;
   font-size: 12px;
+}
+
+.message-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.message-col-body {
+  min-width: 0;
 }
 
 .kat-grid {
