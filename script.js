@@ -471,25 +471,30 @@ function updateManageImageHelp() {
 
 function renderManageImageList() {
   const existingCards = state.manageImageUrls.map((url, index) => `
-    <div class="manage-image-card">
-      <img src="${url}" alt="Jelenlegi kép ${index + 1}">
-      <div class="manage-image-actions">
-        <button type="button" class="manage-image-btn replace" data-replace-manage-image="${index}">Csere</button>
-        <button type="button" class="manage-image-btn delete" data-remove-manage-image="${index}">Törlés</button>
-      </div>
+    <div class="manage-image-thumb-wrap">
+      <button type="button" class="popup-thumb-btn manage-image-thumb" data-manage-image-preview="${index}" aria-label="Kép megnyitása">
+        <img src="${url}" alt="Jelenlegi kép ${index + 1}">
+      </button>
+      <button type="button" class="manage-image-delete-btn" data-remove-manage-image="${index}" aria-label="Kép törlése">✕</button>
     </div>
   `);
 
   const pendingCards = state.managePendingFiles.map((file, index) => `
-    <div class="manage-image-card">
-      <img src="${URL.createObjectURL(file)}" alt="Új kép ${index + 1}">
-      <div class="manage-image-actions">
-        <button type="button" class="manage-image-btn delete" data-remove-manage-new="${index}">Eltávolítás</button>
-      </div>
+    <div class="manage-image-thumb-wrap">
+      <button type="button" class="popup-thumb-btn manage-image-thumb" data-manage-new-preview="${index}" aria-label="Új kép megnyitása">
+        <img src="${URL.createObjectURL(file)}" alt="Új kép ${index + 1}">
+      </button>
+      <button type="button" class="manage-image-delete-btn" data-remove-manage-new="${index}" aria-label="Új kép eltávolítása">✕</button>
     </div>
   `);
 
-  el.manageImageList.innerHTML = [...existingCards, ...pendingCards].join("") || "<p>Ehhez a bejelentéshez még nincs kép.</p>";
+  const hasSlotForMore = state.manageImageUrls.length + state.managePendingFiles.length < MAX_UPLOAD_IMAGES;
+  const addButton = hasSlotForMore
+    ? `<button type="button" class="manage-add-image-btn" data-add-manage-image="true" aria-label="Új kép hozzáadása">＋</button>`
+    : "";
+
+  const cardsMarkup = [...existingCards, ...pendingCards, addButton].join("");
+  el.manageImageList.innerHTML = cardsMarkup || "<p>Ehhez a bejelentéshez még nincs kép.</p>";
 
   el.manageImageList.querySelectorAll("[data-remove-manage-image]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -500,35 +505,31 @@ function renderManageImageList() {
     });
   });
 
-  el.manageImageList.querySelectorAll("[data-replace-manage-image]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const index = Number(btn.dataset.replaceManageImage);
-      const picker = document.createElement("input");
-      picker.type = "file";
-      picker.accept = "image/*";
-      picker.onchange = async () => {
-        const file = picker.files?.[0];
-        if (!file) return;
-        try {
-          const uploadedUrl = await uploadImageIfAny(file);
-          if (!uploadedUrl) return;
-          state.manageImageUrls[index] = uploadedUrl;
-          renderManageImageList();
-          updateManageImageHelp();
-        } catch (err) {
-          alert(err.message || "Kép csere közben hiba történt.");
-        }
-      };
-      picker.click();
-    });
-  });
-
   el.manageImageList.querySelectorAll("[data-remove-manage-new]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const index = Number(btn.dataset.removeManageNew);
       state.managePendingFiles.splice(index, 1);
       renderManageImageList();
       updateManageImageHelp();
+    });
+  });
+
+  el.manageImageList.querySelector("[data-add-manage-image]")?.addEventListener("click", () => {
+    el.manageImageInput.click();
+  });
+
+  el.manageImageList.querySelectorAll("[data-manage-image-preview]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const index = Number(btn.dataset.manageImagePreview || 0);
+      openImageViewer(state.manageImageUrls, index);
+    });
+  });
+
+  el.manageImageList.querySelectorAll("[data-manage-new-preview]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const index = Number(btn.dataset.manageNewPreview || 0);
+      const previewUrls = state.managePendingFiles.map((file) => URL.createObjectURL(file));
+      openImageViewer(previewUrls, index);
     });
   });
 }
