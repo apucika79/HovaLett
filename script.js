@@ -469,7 +469,7 @@ function renderMessageRows(messages = []) {
         ? `<button class="claim-btn message-reply-btn" data-reply-report="${msg.report_id}" data-reply-user="${msg.from_user_id}">Válasz</button>`
         : "";
 
-      return `<div class="message-row ${threadClass} ${unreadClass}" data-message-id="${msg.id}" data-mark-read="${isIncoming ? "1" : "0"}">${previewCell}<div class="message-col-time">${new Date(msg.created_at).toLocaleString("hu-HU")}</div><div class="message-col-body"><p title="${escapeHtmlAttribute(msg.body)}">${msg.body}</p>${replyButton}</div></div>`;
+      return `<div class="message-row ${threadClass} ${unreadClass}" data-message-id="${msg.id}" data-mark-read="${isIncoming ? "1" : "0"}">${previewCell}<div class="message-col-body"><div class="message-meta-row"><span class="message-col-time">${new Date(msg.created_at).toLocaleString("hu-HU")}</span>${replyButton}</div><p title="${escapeHtmlAttribute(msg.body)}">${msg.body}</p></div></div>`;
     }).join("");
   }).join("")}</div>`;
 }
