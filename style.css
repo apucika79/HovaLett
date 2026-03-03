@@ -505,13 +505,14 @@ button {
 
 .message-row {
   display: grid;
-  grid-template-columns: minmax(170px, 210px) minmax(150px, 180px) 1fr;
-  gap: 10px;
-  align-items: start;
+  grid-template-columns: minmax(220px, 260px) minmax(145px, 175px) 1fr;
+  gap: 12px;
+  align-items: center;
   background: #fff;
   border: 1px solid #dbe4ef;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
 }
 
 .message-row.is-unread .message-col-time,
@@ -520,18 +521,18 @@ button {
 }
 
 .message-row.is-thread-reply {
-  margin-left: 26px;
+  margin-left: 18px;
 }
 
 .message-col-preview-spacer {
   border-left: 3px solid #dbeafe;
-  min-height: 52px;
+  min-height: 56px;
 }
 
 .message-report-preview {
   display: grid;
   grid-template-columns: 52px 1fr;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 
@@ -558,7 +559,7 @@ button {
 .message-report-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -569,15 +570,29 @@ button {
   white-space: nowrap;
 }
 
+.message-report-title {
+  font-size: 14px;
+}
+
 .message-col-time {
   color: #334155;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .message-col-body p {
   margin: 0;
-  white-space: pre-wrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.message-row:hover .message-col-body p,
+.message-row.is-expanded .message-col-body p {
+  white-space: pre-wrap;
+  overflow: visible;
+}
+
 
 .message-reply-btn {
   margin-top: 8px;
