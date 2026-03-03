@@ -138,7 +138,9 @@ const el = {
   myMessagesBtn: document.getElementById("myMessagesBtn"),
   profileUserInfo: document.getElementById("profileUserInfo"),
   myReportsList: document.getElementById("myReportsList"),
+  myReportsSection: document.getElementById("myReportsSection"),
   messageList: document.getElementById("messageList"),
+  messagesSection: document.getElementById("messagesSection"),
   messageModal: document.getElementById("messageModal"),
   messageBody: document.getElementById("messageBody"),
   sendFirstMessageBtn: document.getElementById("sendFirstMessageBtn"),
@@ -1145,27 +1147,44 @@ async function loadReports() {
   renderMapMarkers();
 }
 
-async function refreshProfileData() {
+async function refreshProfileData(options = {}) {
   if (!state.user || !state.supabaseOnline) return;
-  const { data: myReports } = await supabaseClient
-    .from("bejelentesek")
-    .select("*")
-    .eq("user_id", state.user.id)
-    .order("created_at", { ascending: false });
+  const shouldLoadReports = options.loadReports ?? true;
+  const shouldLoadMessages = options.loadMessages ?? true;
 
-  const normalizedMyReports = generateUniqueDisplayCodes((myReports || []).map(normalizeReport));
-  el.myReportsList.innerHTML = normalizedMyReports.map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
+  if (shouldLoadReports) {
+    el.myReportsList.innerHTML = "<p>Bejelentések betöltése...</p>";
+    const { data: myReports, error: myReportsError } = await supabaseClient
+      .from("bejelentesek")
+      .select("*")
+      .eq("user_id", state.user.id)
+      .order("created_at", { ascending: false });
 
-  const { data: messages } = await supabaseClient
-    .from("uzenetek")
-    .select("*")
-    .or(`from_user_id.eq.${state.user.id},to_user_id.eq.${state.user.id}`)
-    .order("created_at", { ascending: false });
+    if (myReportsError) {
+      el.myReportsList.innerHTML = "<p>A saját bejelentések betöltése sikertelen.</p>";
+    } else {
+      const normalizedMyReports = generateUniqueDisplayCodes((myReports || []).map(normalizeReport));
+      el.myReportsList.innerHTML = normalizedMyReports.map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
+    }
+  }
 
-  el.messageList.innerHTML = (messages || []).map((msg) => {
-    const inOut = msg.from_user_id === state.user.id ? "Kimenő" : "Bejövő";
-    return `<div class="report-card"><strong>${inOut}</strong> #${msg.report_id}<br>${msg.body}<br><small>${new Date(msg.created_at).toLocaleString("hu-HU")}</small>${msg.to_user_id !== state.user.id ? "" : `<br><button class=\"claim-btn\" data-reply-report=\"${msg.report_id}\" data-reply-user=\"${msg.from_user_id}\">Válasz</button>`}</div>`;
-  }).join("") || "<p>Nincs üzenet.</p>";
+  if (shouldLoadMessages) {
+    el.messageList.innerHTML = "<p>Üzenetek betöltése...</p>";
+    const { data: messages, error: messagesError } = await supabaseClient
+      .from("uzenetek")
+      .select("*")
+      .or(`from_user_id.eq.${state.user.id},to_user_id.eq.${state.user.id}`)
+      .order("created_at", { ascending: false });
+
+    if (messagesError) {
+      el.messageList.innerHTML = "<p>Az üzenetek betöltése sikertelen.</p>";
+    } else {
+      el.messageList.innerHTML = (messages || []).map((msg) => {
+        const inOut = msg.from_user_id === state.user.id ? "Kimenő" : "Bejövő";
+        return `<div class="report-card"><strong>${inOut}</strong> #${msg.report_id}<br>${msg.body}<br><small>${new Date(msg.created_at).toLocaleString("hu-HU")}</small>${msg.to_user_id !== state.user.id ? "" : `<br><button class=\"claim-btn\" data-reply-report=\"${msg.report_id}\" data-reply-user=\"${msg.from_user_id}\">Válasz</button>`}</div>`;
+      }).join("") || "<p>Nincs üzenet.</p>";
+    }
+  }
 
   document.querySelectorAll("[data-reply-report]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1176,15 +1195,24 @@ async function refreshProfileData() {
 }
 
 function showProfile() {
-  if (!state.user) return;
+  if (!state.user) {
+    renderAuthModal("social-login");
+    el.modal.classList.remove("hidden");
+    el.modal.classList.add("show");
+    return;
+  }
   state.viewMode = "messages";
   el.mainContainer.classList.add("hidden");
   el.bejelentesBox.classList.add("hidden");
   el.valasztoBox.classList.add("hidden");
   el.profileView.classList.remove("hidden");
   el.profileUserInfo.textContent = `${state.user.email}`;
+
+  if (el.myReportsSection) el.myReportsSection.classList.add("hidden");
+  if (el.messagesSection) el.messagesSection.classList.remove("hidden");
+
   updateMenuViewState();
-  refreshProfileData();
+  refreshProfileData({ loadReports: false, loadMessages: true });
 }
 
 function showHome() {
@@ -1209,6 +1237,8 @@ function showMyReports() {
 
   state.viewMode = "myReports";
   if (el.reportPanelTitle) el.reportPanelTitle.textContent = "Legfrissebb jelentéseim";
+  if (el.myReportsSection) el.myReportsSection.classList.remove("hidden");
+  if (el.messagesSection) el.messagesSection.classList.remove("hidden");
   el.profileView.classList.add("hidden");
   el.mainContainer.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
