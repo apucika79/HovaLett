@@ -457,19 +457,18 @@ function renderMessageRows(messages = []) {
   return `<div class="message-table">${groupedEntries.map(([reportId, reportMessages]) => {
     const report = reportById.get(reportId);
     const preview = getReportPreview(report);
+    const category = report?.kategoria || "-";
+    const title = preview.title || "-";
     return reportMessages.map((msg, index) => {
       const isIncoming = msg.to_user_id === state.user.id;
       const isUnread = isIncoming && !state.readMessageIds.has(Number(msg.id));
       const unreadClass = isUnread ? "is-unread" : "";
       const threadClass = index > 0 ? "is-thread-reply" : "";
-      const previewCell = index === 0
-        ? `<div class="message-col-preview"><div class="message-report-preview">${preview.imageUrl ? `<img src="${preview.imageUrl}" alt="Hirdetés előnézet">` : "<div class=\"message-no-image\">Nincs kép</div>"}<div class="message-report-meta"><small>Azonosító: <strong>${preview.reportCode}</strong></small><strong class="message-report-title">${preview.title}</strong></div></div></div>`
-        : '<div class="message-col-preview message-col-preview-spacer"></div>';
       const replyButton = isIncoming
         ? `<button class="claim-btn message-reply-btn" data-reply-report="${msg.report_id}" data-reply-user="${msg.from_user_id}">Válasz</button>`
         : "";
 
-      return `<div class="message-row ${threadClass} ${unreadClass}" data-message-id="${msg.id}" data-mark-read="${isIncoming ? "1" : "0"}">${previewCell}<div class="message-col-body"><div class="message-meta-row"><span class="message-col-time">${new Date(msg.created_at).toLocaleString("hu-HU")}</span>${replyButton}</div><p title="${escapeHtmlAttribute(msg.body)}">${msg.body}</p></div></div>`;
+      return `<div class="message-row ${threadClass} ${unreadClass}" data-message-id="${msg.id}" data-mark-read="${isIncoming ? "1" : "0"}"><div class="message-col-image">${preview.imageUrl ? `<img src="${preview.imageUrl}" alt="Hirdetés előnézet">` : "<div class=\"message-no-image\">Nincs kép</div>"}</div><div class="message-col-category">${category}</div><div class="message-col-title" title="${escapeHtmlAttribute(title)}">${title}</div><div class="message-col-time">${new Date(msg.created_at).toLocaleString("hu-HU")}</div><div class="message-col-body"><p title="${escapeHtmlAttribute(msg.body)}">${msg.body}</p></div><div class="message-col-action">${replyButton}</div></div>`;
     }).join("");
   }).join("")}</div>`;
 }
