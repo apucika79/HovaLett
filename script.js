@@ -45,6 +45,8 @@ const state = {
   suppressMarkerDetailUntil: 0,
   skipNextMarkerDetailReportId: null,
   selectedUploadFiles: [],
+  manageImageUrls: [],
+  managePendingFiles: [],
 };
 
 const typeToLabel = {
@@ -151,6 +153,9 @@ const el = {
   manageReportDescInput: document.getElementById("manageReportDescInput"),
   saveManageChangesBtn: document.getElementById("saveManageChangesBtn"),
   deleteReportBtn: document.getElementById("deleteReportBtn"),
+  manageImageList: document.getElementById("manageImageList"),
+  manageImageInput: document.getElementById("manageImageInput"),
+  manageImageHelp: document.getElementById("manageImageHelp"),
   imageViewerModal: document.getElementById("imageViewerModal"),
   imageStage: document.getElementById("imageStage"),
   imageViewerImg: document.getElementById("imageViewerImg"),
@@ -459,18 +464,95 @@ function updateMenuViewState() {
   }
 }
 
+function updateManageImageHelp() {
+  const totalCount = state.manageImageUrls.length + state.managePendingFiles.length;
+  el.manageImageHelp.textContent = `${totalCount}/${MAX_UPLOAD_IMAGES} kép lesz mentés után.`;
+}
+
+function renderManageImageList() {
+  const existingCards = state.manageImageUrls.map((url, index) => `
+    <div class="manage-image-card">
+      <img src="${url}" alt="Jelenlegi kép ${index + 1}">
+      <div class="manage-image-actions">
+        <button type="button" class="manage-image-btn replace" data-replace-manage-image="${index}">Csere</button>
+        <button type="button" class="manage-image-btn delete" data-remove-manage-image="${index}">Törlés</button>
+      </div>
+    </div>
+  `);
+
+  const pendingCards = state.managePendingFiles.map((file, index) => `
+    <div class="manage-image-card">
+      <img src="${URL.createObjectURL(file)}" alt="Új kép ${index + 1}">
+      <div class="manage-image-actions">
+        <button type="button" class="manage-image-btn delete" data-remove-manage-new="${index}">Eltávolítás</button>
+      </div>
+    </div>
+  `);
+
+  el.manageImageList.innerHTML = [...existingCards, ...pendingCards].join("") || "<p>Ehhez a bejelentéshez még nincs kép.</p>";
+
+  el.manageImageList.querySelectorAll("[data-remove-manage-image]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const index = Number(btn.dataset.removeManageImage);
+      state.manageImageUrls.splice(index, 1);
+      renderManageImageList();
+      updateManageImageHelp();
+    });
+  });
+
+  el.manageImageList.querySelectorAll("[data-replace-manage-image]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const index = Number(btn.dataset.replaceManageImage);
+      const picker = document.createElement("input");
+      picker.type = "file";
+      picker.accept = "image/*";
+      picker.onchange = async () => {
+        const file = picker.files?.[0];
+        if (!file) return;
+        try {
+          const uploadedUrl = await uploadImageIfAny(file);
+          if (!uploadedUrl) return;
+          state.manageImageUrls[index] = uploadedUrl;
+          renderManageImageList();
+          updateManageImageHelp();
+        } catch (err) {
+          alert(err.message || "Kép csere közben hiba történt.");
+        }
+      };
+      picker.click();
+    });
+  });
+
+  el.manageImageList.querySelectorAll("[data-remove-manage-new]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const index = Number(btn.dataset.removeManageNew);
+      state.managePendingFiles.splice(index, 1);
+      renderManageImageList();
+      updateManageImageHelp();
+    });
+  });
+}
+
 function openManageReportModal(report) {
   if (!report || !state.user || report.user_id !== state.user.id) return;
   selectedOwnReport = report;
+  state.manageImageUrls = getImageUrls(report.image_url);
+  state.managePendingFiles = [];
+  el.manageImageInput.value = "";
   el.reportManageDetails.innerHTML = reportCardHtml(report);
   el.manageActionsPanel.classList.add("hidden");
   el.manageReportTitleInput.value = report.cim || "";
   el.manageReportDescInput.value = report.leiras || "";
+  renderManageImageList();
+  updateManageImageHelp();
   el.reportManageModal.classList.remove("hidden");
 }
 
 function closeManageReportModal() {
   selectedOwnReport = null;
+  state.manageImageUrls = [];
+  state.managePendingFiles = [];
+  el.manageImageInput.value = "";
   el.reportManageModal.classList.add("hidden");
   el.manageActionsPanel.classList.add("hidden");
 }
@@ -480,9 +562,23 @@ async function handleSaveReportChanges() {
   const newTitle = el.manageReportTitleInput.value.trim();
   const newDesc = el.manageReportDescInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH);
 
+  let uploadedUrls = [];
+  try {
+    uploadedUrls = await uploadImagesIfAny(state.managePendingFiles);
+  } catch (err) {
+    alert(err.message || "Új képek feltöltése sikertelen.");
+    return;
+  }
+
+  const imageUrls = [...state.manageImageUrls, ...uploadedUrls].slice(0, MAX_UPLOAD_IMAGES);
+
   const { error } = await supabaseClient
     .from("bejelentesek")
-    .update({ cim: newTitle || "Utcán/épületben", leiras: newDesc })
+    .update({
+      cim: newTitle || "Utcán/épületben",
+      leiras: newDesc,
+      image_url: imageUrls.length ? JSON.stringify(imageUrls) : null,
+    })
     .eq("id", selectedOwnReport.id)
     .eq("user_id", state.user.id);
 
@@ -1156,6 +1252,29 @@ function enforceImageSelectionLimit() {
   el.photoInputHelp.textContent = `${limitedFiles.length}/${MAX_UPLOAD_IMAGES} kép kiválasztva.`;
 }
 
+function handleManageImageSelection() {
+  const incomingFiles = Array.from(el.manageImageInput.files || []);
+  if (!incomingFiles.length) return;
+
+  const availableSlots = MAX_UPLOAD_IMAGES - state.manageImageUrls.length - state.managePendingFiles.length;
+  if (availableSlots <= 0) {
+    alert(`Már elérted a ${MAX_UPLOAD_IMAGES} képes limitet.`);
+    el.manageImageInput.value = "";
+    return;
+  }
+
+  const acceptedFiles = incomingFiles.slice(0, availableSlots);
+  state.managePendingFiles.push(...acceptedFiles);
+
+  if (incomingFiles.length > acceptedFiles.length) {
+    alert(`Csak ${availableSlots} új kép adható hozzá.`);
+  }
+
+  el.manageImageInput.value = "";
+  renderManageImageList();
+  updateManageImageHelp();
+}
+
 async function uploadImagesIfAny(files) {
   const selectedFiles = Array.from(files || []).slice(0, MAX_UPLOAD_IMAGES);
   const uploadedUrls = [];
@@ -1588,6 +1707,7 @@ function bindMenu() {
   el.saveManageChangesBtn.addEventListener("click", handleSaveReportChanges);
   el.deleteReportBtn.addEventListener("click", handleDeleteReport);
   el.photoInput.addEventListener("change", enforceImageSelectionLimit);
+  el.manageImageInput.addEventListener("change", handleManageImageSelection);
 }
 
 window.addEventListener("beforeunload", async () => {

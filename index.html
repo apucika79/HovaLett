@@ -185,6 +185,10 @@
         <input id="manageReportTitleInput" type="text" placeholder="Pl. Járat: 7-es" />
         <label for="manageReportDescInput">Leírás</label>
         <textarea id="manageReportDescInput" rows="4" maxlength="150" placeholder="Leírás módosítása... (max. 150 karakter)"></textarea>
+        <label for="manageImageInput">Képek kezelése</label>
+        <div id="manageImageList" class="manage-image-list"></div>
+        <input id="manageImageInput" type="file" accept="image/*" multiple />
+        <small id="manageImageHelp" class="photo-input-help">Maximum 3 kép lehet összesen.</small>
         <div class="modal-actions">
           <button id="saveManageChangesBtn" class="modal-primary-btn" type="button">Módosítás mentése</button>
           <button id="deleteReportBtn" class="danger-btn" type="button">Törlés</button>
