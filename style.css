@@ -24,6 +24,11 @@ button {
   color: white;
 }
 
+.menu-btn.active-menu-btn {
+  background-color: #1d4ed8;
+  box-shadow: 0 0 0 2px #bfdbfe inset;
+}
+
 .photo-input-help {
   display: block;
   margin-top: 6px;
@@ -72,6 +77,17 @@ button {
 .filter-cat.active { background-color: #42a5f5; font-weight: bold; }
 
 .report-list { display: flex; flex-direction: column; gap: 10px; }
+
+.report-view-hint {
+  margin: 0 0 12px;
+  color: #1e3a8a;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: left;
+}
 .report-card {
   background-color: #fff;
   padding: 10px;

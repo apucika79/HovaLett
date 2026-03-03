@@ -161,6 +161,9 @@ const el = {
   reportDetailModal: document.getElementById("reportDetailModal"),
   reportDetailBody: document.getElementById("reportDetailBody"),
   reportDetailCloseBtn: document.getElementById("reportDetailCloseBtn"),
+  leftPanel: document.getElementById("leftPanel"),
+  reportPanelTitle: document.getElementById("reportPanelTitle"),
+  reportViewHint: document.getElementById("reportViewHint"),
 };
 
 let selectedOwnReport = null;
@@ -389,6 +392,17 @@ function getReportsForCurrentView() {
 function updateVisibleItems() {
   el.reportItems.innerHTML = "";
   const visibleReports = getReportsForCurrentView();
+
+  if (el.reportViewHint) {
+    if (state.viewMode === "myReports") {
+      el.reportViewHint.textContent = `Saját nézet: ${visibleReports.length} bejelentésed látható. A bal oldali szűrők ebben a nézetben nem módosítják a listát.`;
+      el.reportViewHint.classList.remove("hidden");
+    } else {
+      el.reportViewHint.classList.add("hidden");
+      el.reportViewHint.textContent = "";
+    }
+  }
+
   visibleReports.forEach((report) => {
     const isHomeView = state.viewMode === "home";
     const isHomeLikeView = isHomeView || state.viewMode === "myReports";
@@ -420,6 +434,14 @@ function updateVisibleItems() {
     el.reportItems.innerHTML = state.viewMode === "myReports"
       ? "<p>Még nincs saját bejelentésed.</p>"
       : "<p>Nincs a szűrőknek megfelelő tárgy. Kapcsold be több kategóriát vagy típust.</p>";
+  }
+}
+
+function updateMenuViewState() {
+  const isMyReports = state.viewMode === "myReports";
+  el.myReportsBtn.classList.toggle("active-menu-btn", isMyReports);
+  if (el.leftPanel) {
+    el.leftPanel.classList.toggle("hidden", isMyReports);
   }
 }
 
@@ -1018,6 +1040,7 @@ async function refreshProfileData() {
 
 function showProfile() {
   if (!state.user) return;
+  el.myReportsBtn.classList.remove("active-menu-btn");
   el.mainContainer.classList.add("hidden");
   el.bejelentesBox.classList.add("hidden");
   el.valasztoBox.classList.add("hidden");
@@ -1028,11 +1051,11 @@ function showProfile() {
 
 function showHome() {
   state.viewMode = "home";
-  const reportPanelTitle = document.getElementById("reportPanelTitle");
-  if (reportPanelTitle) reportPanelTitle.textContent = "Legfrissebb jelentések";
+  if (el.reportPanelTitle) el.reportPanelTitle.textContent = "Legfrissebb jelentések";
   el.profileView.classList.add("hidden");
   el.mainContainer.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
+  updateMenuViewState();
   updateVisibleItems();
   renderMapMarkers();
 }
@@ -1046,11 +1069,11 @@ function showMyReports() {
   }
 
   state.viewMode = "myReports";
-  const reportPanelTitle = document.getElementById("reportPanelTitle");
-  if (reportPanelTitle) reportPanelTitle.textContent = "Legfrissebb jelentéseim";
+  if (el.reportPanelTitle) el.reportPanelTitle.textContent = "Legfrissebb jelentéseim";
   el.profileView.classList.add("hidden");
   el.mainContainer.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
+  updateMenuViewState();
   updateVisibleItems();
   renderMapMarkers();
 }
@@ -1315,6 +1338,8 @@ async function hydrateAuth() {
     el.homeBtn.classList.add("hidden");
     showHome();
   }
+
+  updateMenuViewState();
 }
 
 function openFirstMessageModal(report, isReply = false) {
