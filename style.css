@@ -240,6 +240,30 @@ button {
   gap: 8px;
 }
 
+.auth-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.auth-provider-btn {
+  width: 100%;
+  margin: 0;
+  background-color: #3f51b5;
+}
+
+.auth-preference {
+  display: block;
+  text-align: left;
+  margin: 6px 0;
+  color: #334155;
+}
+
+.auth-preference input {
+  margin-right: 6px;
+}
+
 .popup-action-btn {
   margin: 0;
 }

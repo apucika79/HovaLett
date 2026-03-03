@@ -103,6 +103,11 @@ const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_ANON_KEY)
   ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
+const authPreferences = {
+  rememberDevice: "hovalett.rememberDevice",
+  stayLoggedIn: "hovalett.stayLoggedIn",
+};
+
 const el = {
   foundBtn: document.getElementById("foundBtn"),
   lostBtn: document.getElementById("lostBtn"),
@@ -1034,7 +1039,7 @@ function showHome() {
 
 function showMyReports() {
   if (!state.user) {
-    renderAuthModal("choice");
+    renderAuthModal("social-login");
     el.modal.classList.remove("hidden");
     el.modal.classList.add("show");
     return;
@@ -1174,8 +1179,50 @@ function renderAuthModal(mode = "choice") {
       el.modal.classList.add("hidden");
       el.modal.classList.remove("show");
     };
-    document.getElementById("loginBtn").onclick = () => renderAuthModal("login");
+    document.getElementById("loginBtn").onclick = () => renderAuthModal("social-login");
     document.getElementById("registerBtn").onclick = () => renderAuthModal("register");
+    return;
+  }
+
+  if (mode === "social-login") {
+    el.modalContent.innerHTML = `
+      <button class="modal-close-btn" data-auth-close="true" aria-label="Bezárás">✕</button>
+      <h3>Bejelentkezés</h3>
+      <p>Válassz bejelentkezési módot:</p>
+      <div class="auth-provider-list">
+        <button data-provider="facebook" class="auth-provider-btn">Facebook</button>
+        <button data-provider="google" class="auth-provider-btn">Google</button>
+        <button data-provider="instagram" class="auth-provider-btn">Instagram</button>
+      </div>
+      <div class="modal-actions">
+        <button id="openEmailLoginBtn" class="modal-primary-btn">Email és jelszó</button>
+        <button id="authBackBtn" class="modal-secondary-btn">Vissza</button>
+      </div>
+    `;
+
+    document.querySelector("[data-auth-close='true']").onclick = () => {
+      el.modal.classList.add("hidden");
+      el.modal.classList.remove("show");
+    };
+
+    document.querySelectorAll(".auth-provider-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        if (!supabaseClient) return alert("Supabase nincs beállítva.");
+        const provider = button.dataset.provider;
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo: window.location.href },
+        });
+        if (error) {
+          alert(provider === "instagram"
+            ? "Az Instagram bejelentkezés jelenleg nem támogatott. Kérlek, használd a Facebook, Google vagy email opciót."
+            : error.message);
+        }
+      });
+    });
+
+    document.getElementById("openEmailLoginBtn").onclick = () => renderAuthModal("login");
+    document.getElementById("authBackBtn").onclick = () => renderAuthModal("choice");
     return;
   }
 
@@ -1184,6 +1231,11 @@ function renderAuthModal(mode = "choice") {
     <h3>${mode === "login" ? "Bejelentkezés" : "Regisztráció"}</h3>
     <input type="email" id="authEmail" placeholder="Email cím"><br><br>
     <input type="password" id="authPassword" placeholder="Jelszó"><br><br>
+    ${mode === "login" ? `
+      <label class="auth-preference"><input type="checkbox" id="rememberDevice"> Jegyezze meg ezt a készüléket</label>
+      <label class="auth-preference"><input type="checkbox" id="stayLoggedIn"> Bejelentkezve maradok, amíg ki nem jelentkezem</label>
+      <br>
+    ` : ""}
     <div class="modal-actions">
       <button id="authBackBtn" class="modal-secondary-btn">Vissza</button>
       <button id="authSubmitBtn" class="modal-primary-btn">${mode === "login" ? "Bejelentkezés" : "Regisztráció"}</button>
@@ -1195,7 +1247,14 @@ function renderAuthModal(mode = "choice") {
     el.modal.classList.remove("show");
   };
 
-  document.getElementById("authBackBtn").onclick = () => renderAuthModal("choice");
+  if (mode === "login") {
+    const remembered = localStorage.getItem(authPreferences.rememberDevice) === "true";
+    const stayLoggedIn = localStorage.getItem(authPreferences.stayLoggedIn) === "true";
+    document.getElementById("rememberDevice").checked = remembered;
+    document.getElementById("stayLoggedIn").checked = stayLoggedIn;
+  }
+
+  document.getElementById("authBackBtn").onclick = () => renderAuthModal(mode === "login" ? "social-login" : "choice");
   document.getElementById("authSubmitBtn").onclick = async () => {
     if (!supabaseClient) return alert("Supabase nincs beállítva.");
     const email = document.getElementById("authEmail").value.trim();
@@ -1212,10 +1271,22 @@ function renderAuthModal(mode = "choice") {
       alert("Regisztráció kész. Ha email megerősítés kell, igazold vissza.");
       return;
     }
+
+    const shouldRememberDevice = document.getElementById("rememberDevice")?.checked ?? false;
+    const shouldStayLoggedIn = document.getElementById("stayLoggedIn")?.checked ?? false;
+    localStorage.setItem(authPreferences.rememberDevice, String(shouldRememberDevice));
+    localStorage.setItem(authPreferences.stayLoggedIn, String(shouldStayLoggedIn));
+
     await hydrateAuth();
     el.modal.classList.add("hidden");
     el.modal.classList.remove("show");
   };
+}
+
+function shouldPersistSession() {
+  const rememberDevice = localStorage.getItem(authPreferences.rememberDevice) === "true";
+  const stayLoggedIn = localStorage.getItem(authPreferences.stayLoggedIn) === "true";
+  return rememberDevice && stayLoggedIn;
 }
 
 async function hydrateAuth() {
@@ -1318,7 +1389,7 @@ function initReportFlow() {
 
   el.foundBtn.addEventListener("click", () => {
     if (!state.user) {
-      renderAuthModal("choice");
+      renderAuthModal("social-login");
       el.modal.classList.remove("hidden");
       el.modal.classList.add("show");
       return;
@@ -1332,7 +1403,7 @@ function initReportFlow() {
 
   el.lostBtn.addEventListener("click", () => {
     if (!state.user) {
-      renderAuthModal("choice");
+      renderAuthModal("social-login");
       el.modal.classList.remove("hidden");
       el.modal.classList.add("show");
       return;
@@ -1439,7 +1510,7 @@ function initializeDatePicker() {
 
 function bindMenu() {
   el.loginBtn.addEventListener("click", () => {
-    renderAuthModal("choice");
+    renderAuthModal("social-login");
     el.modal.classList.remove("hidden");
     el.modal.classList.add("show");
   });
@@ -1447,6 +1518,8 @@ function bindMenu() {
   el.logoutBtn.addEventListener("click", async () => {
     if (!supabaseClient) return;
     await supabaseClient.auth.signOut();
+    localStorage.removeItem(authPreferences.rememberDevice);
+    localStorage.removeItem(authPreferences.stayLoggedIn);
     state.user = null;
     await hydrateAuth();
   });
@@ -1467,6 +1540,11 @@ function bindMenu() {
   el.deleteReportBtn.addEventListener("click", handleDeleteReport);
   el.photoInput.addEventListener("change", enforceImageSelectionLimit);
 }
+
+window.addEventListener("beforeunload", async () => {
+  if (!supabaseClient || !state.user || shouldPersistSession()) return;
+  await supabaseClient.auth.signOut();
+});
 
 async function init() {
   bindMenu();
