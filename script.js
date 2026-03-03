@@ -439,7 +439,11 @@ function updateVisibleItems() {
 
 function updateMenuViewState() {
   const isMyReports = state.viewMode === "myReports";
+  const isMessages = state.viewMode === "messages";
+  const isHome = state.viewMode === "home";
   el.myReportsBtn.classList.toggle("active-menu-btn", isMyReports);
+  el.myMessagesBtn.classList.toggle("active-menu-btn", isMessages);
+  el.homeBtn.classList.toggle("active-menu-btn", isHome);
   if (el.leftPanel) {
     el.leftPanel.classList.toggle("hidden", isMyReports);
   }
@@ -1040,12 +1044,13 @@ async function refreshProfileData() {
 
 function showProfile() {
   if (!state.user) return;
-  el.myReportsBtn.classList.remove("active-menu-btn");
+  state.viewMode = "messages";
   el.mainContainer.classList.add("hidden");
   el.bejelentesBox.classList.add("hidden");
   el.valasztoBox.classList.add("hidden");
   el.profileView.classList.remove("hidden");
   el.profileUserInfo.textContent = `${state.user.email}`;
+  updateMenuViewState();
   refreshProfileData();
 }
 
