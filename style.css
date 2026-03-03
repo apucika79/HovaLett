@@ -27,6 +27,7 @@ button {
 .menu-btn.active-menu-btn {
   background-color: #1d4ed8;
   box-shadow: 0 0 0 2px #bfdbfe inset;
+  font-weight: 700;
 }
 
 .photo-input-help {
@@ -430,7 +431,21 @@ button {
   gap: 16px;
 }
 
-.menu-btn { background-color: #607d8b; }
+.menu-btn {
+  background-color: #607d8b;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.menu-btn:hover {
+  background-color: #546e7a;
+}
+
+.menu-btn.active-menu-btn,
+.menu-btn.active-menu-btn:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 0 0 2px #bfdbfe inset;
+  transform: translateY(-1px);
+}
 .logged-user { align-self: center; }
 
 #profileView {
