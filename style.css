@@ -480,6 +480,14 @@ button {
   font-size: 11px;
 }
 
+body.messages-view {
+  overflow-x: hidden;
+}
+
+body.messages-view #profileView {
+  width: min(1400px, calc(100vw - 20px));
+}
+
 #profileView {
   max-width: 1400px;
   margin: 20px auto;
