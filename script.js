@@ -397,7 +397,7 @@ function getReportPreview(report) {
     return {
       imageUrl: "",
       title: "Hirdetés nem elérhető",
-      subtitle: "Lehet, hogy már törölték vagy privát.",
+      reportCode: "-",
     };
   }
 
@@ -405,8 +405,16 @@ function getReportPreview(report) {
   return {
     imageUrl: imageUrls[0] || "",
     title: report.cim || "Névtelen hirdetés",
-    subtitle: `#${report.report_code || report.id || "-"}`,
+    reportCode: `#${report.report_code || report.id || "-"}`,
   };
+}
+
+function escapeHtmlAttribute(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function buildDemoMessage() {
@@ -455,13 +463,13 @@ function renderMessageRows(messages = []) {
       const unreadClass = isUnread ? "is-unread" : "";
       const threadClass = index > 0 ? "is-thread-reply" : "";
       const previewCell = index === 0
-        ? `<div class="message-col-preview"><div class="message-report-preview">${preview.imageUrl ? `<img src="${preview.imageUrl}" alt="Hirdetés előnézet">` : "<div class=\"message-no-image\">Nincs kép</div>"}<div class="message-report-meta"><strong>${preview.title}</strong><small>${preview.subtitle}</small></div></div></div>`
+        ? `<div class="message-col-preview"><div class="message-report-preview">${preview.imageUrl ? `<img src="${preview.imageUrl}" alt="Hirdetés előnézet">` : "<div class=\"message-no-image\">Nincs kép</div>"}<div class="message-report-meta"><small>Azonosító: <strong>${preview.reportCode}</strong></small><strong class="message-report-title">${preview.title}</strong></div></div></div>`
         : '<div class="message-col-preview message-col-preview-spacer"></div>';
       const replyButton = isIncoming
         ? `<button class="claim-btn message-reply-btn" data-reply-report="${msg.report_id}" data-reply-user="${msg.from_user_id}">Válasz</button>`
         : "";
 
-      return `<div class="message-row ${threadClass} ${unreadClass}" data-message-id="${msg.id}" data-mark-read="${isIncoming ? "1" : "0"}">${previewCell}<div class="message-col-time">${new Date(msg.created_at).toLocaleString("hu-HU")}</div><div class="message-col-body"><p>${msg.body}</p>${replyButton}</div></div>`;
+      return `<div class="message-row ${threadClass} ${unreadClass}" data-message-id="${msg.id}" data-mark-read="${isIncoming ? "1" : "0"}">${previewCell}<div class="message-col-time">${new Date(msg.created_at).toLocaleString("hu-HU")}</div><div class="message-col-body"><p title="${escapeHtmlAttribute(msg.body)}">${msg.body}</p>${replyButton}</div></div>`;
     }).join("");
   }).join("")}</div>`;
 }
@@ -1314,6 +1322,13 @@ async function refreshProfileData(options = {}) {
       if (!Number.isFinite(id)) return;
       markMessageAsRead(id);
       row.classList.remove("is-unread");
+    });
+  });
+
+  document.querySelectorAll(".message-row").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      row.classList.toggle("is-expanded");
     });
   });
 }
