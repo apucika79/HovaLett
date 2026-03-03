@@ -462,6 +462,15 @@ function updateMenuViewState() {
   }
 }
 
+function refreshMapLayout() {
+  if (!map) return;
+
+  requestAnimationFrame(() => {
+    map.invalidateSize();
+    setTimeout(() => map.invalidateSize(), 120);
+  });
+}
+
 function updateManageImageHelp() {
   const totalCount = state.manageImageUrls.length + state.managePendingFiles.length;
   el.manageImageHelp.textContent = `${totalCount}/${MAX_UPLOAD_IMAGES} kép lesz mentés után.`;
@@ -1175,6 +1184,7 @@ function showHome() {
   updateMenuViewState();
   updateVisibleItems();
   renderMapMarkers();
+  refreshMapLayout();
 }
 
 function showMyReports() {
@@ -1193,6 +1203,7 @@ function showMyReports() {
   updateMenuViewState();
   updateVisibleItems();
   renderMapMarkers();
+  refreshMapLayout();
 }
 
 async function uploadImageIfAny(file) {
