@@ -505,6 +505,14 @@ body.messages-view #profileView {
   gap: 12px;
 }
 
+body.messages-view .profile-columns {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.messages-view #messagesSection {
+  grid-column: 1 / -1;
+}
+
 .message-table {
   display: flex;
   flex-direction: column;
