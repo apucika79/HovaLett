@@ -161,6 +161,7 @@ const el = {
   reportDetailModal: document.getElementById("reportDetailModal"),
   reportDetailBody: document.getElementById("reportDetailBody"),
   reportDetailCloseBtn: document.getElementById("reportDetailCloseBtn"),
+  reportDetailModalCloseBtn: document.getElementById("reportDetailModalCloseBtn"),
   leftPanel: document.getElementById("leftPanel"),
   reportPanelTitle: document.getElementById("reportPanelTitle"),
   reportViewHint: document.getElementById("reportViewHint"),
@@ -406,6 +407,7 @@ function updateVisibleItems() {
   visibleReports.forEach((report) => {
     const isHomeView = state.viewMode === "home";
     const isHomeLikeView = isHomeView || state.viewMode === "myReports";
+    const isMyReportsView = state.viewMode === "myReports";
     const card = document.createElement("div");
     card.className = "report-card";
     if (isHomeView) card.classList.add("home-report-item");
@@ -413,6 +415,7 @@ function updateVisibleItems() {
       includeDescription: !isHomeLikeView,
       includeDetailButton: isHomeLikeView,
       includeMapButton: isHomeView,
+      includeManageButton: isMyReportsView,
     });
     if (isHomeLikeView) {
       const detailBtn = card.querySelector(".report-details-btn");
@@ -420,6 +423,13 @@ function updateVisibleItems() {
         event.preventDefault();
         event.stopPropagation();
         openReportDetailModal(report);
+      });
+
+      const manageBtn = card.querySelector("[data-manage-report]");
+      manageBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openManageReportModal(report);
       });
 
       const mapBtn = card.querySelector("[data-map-report]");
@@ -510,7 +520,12 @@ async function handleDeleteReport() {
 }
 
 function reportCardHtml(report, options = {}) {
-  const { includeDescription = true, includeDetailButton = false, includeMapButton = false } = options;
+  const {
+    includeDescription = true,
+    includeDetailButton = false,
+    includeMapButton = false,
+    includeManageButton = false,
+  } = options;
   const imageUrls = getImageUrls(report.image_url);
   const descriptionRow = includeDescription
     ? `<strong>Leírás:</strong> ${report.leiras || "-"}<br>`
@@ -521,6 +536,9 @@ function reportCardHtml(report, options = {}) {
   const mapButton = includeMapButton
     ? `<button type="button" class="report-map-btn" data-map-report="${report.id}">Mutasd a térképen</button>`
     : "";
+  const manageButton = includeManageButton
+    ? `<button type="button" class="report-manage-btn" data-manage-report="${report.id}">Kezelés</button>`
+    : "";
 
   return `
     <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${typeToLabel[report.tipus] || report.tipus}</strong> – ${report.kategoria}<br>
@@ -528,7 +546,7 @@ function reportCardHtml(report, options = {}) {
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
     <strong>Cím:</strong> ${report.cim || "-"}<br>
     ${descriptionRow}
-    <div class="report-card-actions">${detailButton}${mapButton}</div>
+    <div class="report-card-actions">${detailButton}${manageButton}${mapButton}</div>
   `;
 }
 
@@ -638,6 +656,7 @@ function setupImageViewerEvents() {
   el.imageViewerCloseBtn.addEventListener("click", closeImageViewer);
 
   el.reportDetailCloseBtn.addEventListener("click", closeReportDetailModal);
+  el.reportDetailModalCloseBtn?.addEventListener("click", closeReportDetailModal);
   el.imageViewerModal.addEventListener("click", (event) => {
     if (event.target === el.imageViewerModal) closeImageViewer();
   });
