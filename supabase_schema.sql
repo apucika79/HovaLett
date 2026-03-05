@@ -42,19 +42,20 @@ create policy "bejelentesek_insert_auth"
   to authenticated
   with check (auth.uid() = user_id);
 
--- saját bejelentéseket láthatja
+-- publikus térképen csak az aktív bejelentések láthatók (anon + authenticated)
+drop policy if exists "bejelentesek_select_public" on public.bejelentesek;
+drop policy if exists "bejelentesek_select_active" on public.bejelentesek;
+create policy "bejelentesek_select_active"
+  on public.bejelentesek for select
+  to public
+  using (status = 'aktiv');
+
+-- bejelentkezett felhasználó a saját bejelentéseit mindig láthatja
 drop policy if exists "bejelentesek_select_own" on public.bejelentesek;
 create policy "bejelentesek_select_own"
   on public.bejelentesek for select
   to authenticated
   using (auth.uid() = user_id);
-
--- publikus térképhez olvasható bejelentések (anon + authenticated)
-drop policy if exists "bejelentesek_select_public" on public.bejelentesek;
-create policy "bejelentesek_select_public"
-  on public.bejelentesek for select
-  to public
-  using (true);
 
 -- saját bejelentést módosíthatja
 drop policy if exists "bejelentesek_update_own" on public.bejelentesek;
@@ -83,6 +84,21 @@ create policy "uzenetek_insert_sender"
   on public.uzenetek for insert
   to authenticated
   with check (auth.uid() = from_user_id);
+
+-- csak a küldő szerkesztheti az üzenetét
+drop policy if exists "uzenetek_update_sender" on public.uzenetek;
+create policy "uzenetek_update_sender"
+  on public.uzenetek for update
+  to authenticated
+  using (auth.uid() = from_user_id)
+  with check (auth.uid() = from_user_id);
+
+-- küldő vagy címzett törölheti az üzenetet
+drop policy if exists "uzenetek_delete_participants" on public.uzenetek;
+create policy "uzenetek_delete_participants"
+  on public.uzenetek for delete
+  to authenticated
+  using (auth.uid() = from_user_id or auth.uid() = to_user_id);
 
 insert into storage.buckets (id, name, public)
 values ('report-images', 'report-images', true)
