@@ -49,11 +49,11 @@ create policy "bejelentesek_select_own"
   to authenticated
   using (auth.uid() = user_id);
 
--- opcionális: publikus térképhez olvasható bejelentések
+-- publikus térképhez olvasható bejelentések (anon + authenticated)
 drop policy if exists "bejelentesek_select_public" on public.bejelentesek;
 create policy "bejelentesek_select_public"
   on public.bejelentesek for select
-  to anon
+  to public
   using (true);
 
 -- üzeneteket csak a küldő és címzett láthatja
