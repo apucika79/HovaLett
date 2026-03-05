@@ -417,6 +417,15 @@ function escapeHtmlAttribute(value) {
     .replace(/>/g, "&gt;");
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function buildDemoMessage() {
   const relatedReport = state.reports[0] || null;
   const relatedReportTitle = relatedReport?.cim || "fekete hátizsák";
@@ -761,8 +770,13 @@ function reportCardHtml(report, options = {}) {
     includeManageButton = false,
   } = options;
   const imageUrls = getImageUrls(report.image_url);
+  const reportTypeLabel = escapeHtml(typeToLabel[report.tipus] || report.tipus || "-");
+  const reportCategory = escapeHtml(report.kategoria || "-");
+  const reportCode = escapeHtml(report.report_code || "-");
+  const reportTitle = escapeHtml(report.cim || "-");
+  const reportDescription = escapeHtml(report.leiras || "-");
   const descriptionRow = includeDescription
-    ? `<strong>Leírás:</strong> ${report.leiras || "-"}<br>`
+    ? `<strong>Leírás:</strong> ${reportDescription}<br>`
     : "";
   const detailButton = includeDetailButton
     ? `<button type="button" class="report-details-btn" data-focus-report="${report.id}">Részletek</button>`
@@ -775,10 +789,10 @@ function reportCardHtml(report, options = {}) {
     : "";
 
   return `
-    <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${typeToLabel[report.tipus] || report.tipus}</strong> – ${report.kategoria}<br>
-    <strong>Azonosító:</strong> ${report.report_code || "-"}<br>
+    <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${reportTypeLabel}</strong> – ${reportCategory}<br>
+    <strong>Azonosító:</strong> ${reportCode}<br>
     <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
-    <strong>Cím:</strong> ${report.cim || "-"}<br>
+    <strong>Cím:</strong> ${reportTitle}<br>
     ${descriptionRow}
     <div class="report-card-actions">${detailButton}${manageButton}${mapButton}</div>
   `;
