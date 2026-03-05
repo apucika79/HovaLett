@@ -37,6 +37,23 @@ h1 { margin-top: 20px; }
   flex-wrap: nowrap;
 }
 
+.map-area {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-button-row {
+  justify-content: center;
+}
+
+.map-button-row button {
+  width: clamp(170px, 22vw, 240px);
+  text-align: center;
+}
+
 button {
   padding: 8px 14px;
   margin: 0;
@@ -1024,6 +1041,10 @@ body.messages-view #messagesSection {
     order: -1;
   }
 
+  .map-area {
+    order: -1;
+  }
+
   .message-row {
     grid-template-columns: 52px 1fr;
     align-items: start;
@@ -1051,6 +1072,14 @@ body.messages-view #messagesSection {
   #map {
     height: 38vh;
     min-height: 240px;
+  }
+
+  .map-button-row {
+    flex-wrap: wrap;
+  }
+
+  .map-button-row button {
+    width: min(100%, 260px);
   }
 
   #leftPanel {
