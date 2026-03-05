@@ -134,7 +134,7 @@ button {
   letter-spacing: 0.4px;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.22);
   padding: 14px 9px;
-  transition: left 0.3s ease, background-color 0.2s ease;
+  transition: left 0.3s ease, transform 0.3s ease, background-color 0.2s ease;
 }
 
 .filter-drawer-toggle:hover {
@@ -143,6 +143,7 @@ button {
 
 .filter-drawer-toggle.is-open {
   left: calc(var(--drawer-width) + var(--drawer-open-offset));
+  transform: translate(-100%, -50%);
 }
 
 .filter-drawer-backdrop {
@@ -167,7 +168,7 @@ button {
   letter-spacing: 0.4px;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.22);
   padding: 14px 9px;
-  transition: right 0.3s ease, background-color 0.2s ease;
+  transition: right 0.3s ease, transform 0.3s ease, background-color 0.2s ease;
 }
 
 .report-drawer-toggle:hover {
@@ -176,6 +177,7 @@ button {
 
 .report-drawer-toggle.is-open {
   right: calc(var(--drawer-width) + var(--drawer-open-offset));
+  transform: translate(100%, -50%);
 }
 
 .report-drawer-backdrop {
@@ -1009,9 +1011,11 @@ body.messages-view #messagesSection {
 
   .filter-drawer-toggle.is-open {
     left: 0;
+    transform: translateY(-50%);
   }
 
   .report-drawer-toggle.is-open {
     right: 0;
+    transform: translateY(-50%);
   }
 }
