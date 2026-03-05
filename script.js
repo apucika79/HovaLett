@@ -1496,10 +1496,29 @@ async function saveReport() {
   if (!supabaseClient) return alert("Supabase nincs beállítva.");
   if (!state.supabaseOnline) return alert("A Supabase kapcsolat nem működik, így az éles bejelentés most nem menthető.");
   if (!state.user) return alert("Bejelentkezés szükséges.");
-  if (!state.pendingCoords) return alert("Előbb jelöld a helyet a térképen.");
-  if (!state.selectedCategory) return alert("Válassz kategóriát.");
-  if (state.pendingLocationType === "jarmu" && !el.routeInput.value.trim()) {
-    return alert("Járművön történt esetnél add meg a járatszámot.");
+
+  const validationErrors = [];
+
+  if (!state.pendingCoords || !Number.isFinite(state.pendingCoords.lat) || !Number.isFinite(state.pendingCoords.lng)) {
+    validationErrors.push("Hiányzik vagy hibás a térképen kiválasztott hely.");
+  }
+
+  if (!state.selectedCategory) {
+    validationErrors.push("Kategória megadása kötelező.");
+  }
+
+  const routeValue = el.routeInput.value.trim();
+  if (state.pendingLocationType === "jarmu" && !routeValue) {
+    validationErrors.push("Járművön történt esetnél add meg a járatszámot.");
+  }
+
+  const description = el.descriptionInput.value.trim();
+  if (description.length > MAX_DESCRIPTION_LENGTH) {
+    validationErrors.push(`A leírás legfeljebb ${MAX_DESCRIPTION_LENGTH} karakter lehet.`);
+  }
+
+  if (validationErrors.length) {
+    return alert(`Mentés sikertelen, javítsd az alábbiakat:\n• ${validationErrors.join("\n• ")}`);
   }
 
   let imageUrls = [];
@@ -1515,8 +1534,8 @@ async function saveReport() {
     user_id: state.user.id,
     tipus: typeFromSelection(),
     kategoria: normalizeCategory(state.selectedCategory),
-    cim: state.pendingLocationType === "jarmu" ? `Járat: ${el.routeInput.value || "n/a"}` : "Utcán/épületben",
-    leiras: el.descriptionInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH),
+    cim: state.pendingLocationType === "jarmu" ? `Járat: ${routeValue || "n/a"}` : "Utcán/épületben",
+    leiras: description.slice(0, MAX_DESCRIPTION_LENGTH),
     lat: savedCoords.lat,
     lng: savedCoords.lng,
     created_at: (state.reportDateTime || new Date()).toISOString(),
@@ -1826,9 +1845,9 @@ function initReportFlow() {
   });
 
   document.getElementById("datumModalOkBtn").addEventListener("click", () => {
-    const isValidSelection = datePickerControls?.validate?.() ?? true;
-    if (!isValidSelection) {
-      alert("A mai dátumhoz nem adhatsz meg jövőbeli időpontot.");
+    const validationResult = datePickerControls?.validate?.() ?? { isValid: true, errorMessage: "" };
+    if (!validationResult.isValid) {
+      alert(validationResult.errorMessage || "Érvénytelen dátum/idő választás.");
       return;
     }
 
@@ -1895,14 +1914,22 @@ function initializeDatePicker() {
     maxAllowedDateTime.setSeconds(0, 0);
 
     if (!Number.isFinite(selectedDateTime.getTime())) {
-      return { isValid: false, date: maxAllowedDateTime };
+      return {
+        isValid: false,
+        date: maxAllowedDateTime,
+        errorMessage: "A megadott dátum vagy idő formátuma hibás.",
+      };
     }
 
     if (selectedDateTime.getTime() > maxAllowedDateTime.getTime()) {
-      return { isValid: false, date: maxAllowedDateTime };
+      return {
+        isValid: false,
+        date: maxAllowedDateTime,
+        errorMessage: "Jövőbeli időpont nem adható meg.",
+      };
     }
 
-    return { isValid: true, date: selectedDateTime };
+    return { isValid: true, date: selectedDateTime, errorMessage: "" };
   };
 
   const syncTimeConstraints = () => {
@@ -1916,7 +1943,7 @@ function initializeDatePicker() {
 
   const updateDateTime = () => {
     syncTimeConstraints();
-    const { isValid, date } = getSafeSelectedDateTime();
+    const { isValid, date, errorMessage } = getSafeSelectedDateTime();
     state.reportDateTime = date;
 
     if (!isValid) {
@@ -1927,7 +1954,7 @@ function initializeDatePicker() {
     const dayName = date.toLocaleDateString("hu-HU", { weekday: "long" });
     dayOfWeek.textContent = dayName[0].toUpperCase() + dayName.slice(1);
 
-    return isValid;
+    return { isValid, errorMessage };
   };
 
   dateInput.onchange = updateDateTime;
