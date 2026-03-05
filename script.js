@@ -347,11 +347,49 @@ async function createReport(payloadBase) {
     throw new Error("Supabase nincs beállítva, mentés nem lehetséges.");
   }
 
-  const { error } = await supabaseClient
-    .from("bejelentesek")
-    .insert([payloadBase]);
+  const fallbackInsertWithoutReportCode = async () => {
+    const { error } = await supabaseClient
+      .from("bejelentesek")
+      .insert([payloadBase]);
 
-  if (error) throw new Error(`Mentési hiba: ${error.message}`);
+    if (error) {
+      throw new Error(`Mentési hiba: ${error.message}`);
+    }
+  };
+
+  const preferredCode = String(payloadBase.report_code || "").trim();
+
+  for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
+    const reportCode = attempt === 0 && preferredCode ? preferredCode : generateReportCodeCandidate();
+    const payload = {
+      ...payloadBase,
+      report_code: reportCode,
+    };
+
+    const { error } = await supabaseClient
+      .from("bejelentesek")
+      .insert([payload]);
+
+    if (!error) return;
+
+    const errorMessage = String(error.message || "").toLowerCase();
+    const isMissingReportCodeColumn = errorMessage.includes("schema cache")
+      && errorMessage.includes("report_code")
+      && errorMessage.includes("could not find");
+
+    if (isMissingReportCodeColumn) {
+      console.warn("A report_code oszlop nincs a schema cache-ben, mentés fallback módban report_code nélkül.");
+      await fallbackInsertWithoutReportCode();
+      return;
+    }
+
+    const isUniqueConstraint = error.code === "23505" || errorMessage.includes("duplicate");
+    if (!isUniqueConstraint) {
+      throw new Error(`Mentési hiba: ${error.message}`);
+    }
+  }
+
+  throw new Error("Mentési hiba: nem sikerült egyedi azonosítót generálni.");
 }
 
 function normalizeReport(report) {
