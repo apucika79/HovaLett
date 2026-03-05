@@ -103,7 +103,31 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_ANON_KEY)
-  ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        storage: {
+          getItem(key) {
+            const sessionValue = sessionStorage.getItem(key);
+            if (sessionValue !== null) return sessionValue;
+            return localStorage.getItem(key);
+          },
+          setItem(key, value) {
+            if (shouldPersistSession()) {
+              localStorage.setItem(key, value);
+              sessionStorage.removeItem(key);
+              return;
+            }
+
+            sessionStorage.setItem(key, value);
+            localStorage.removeItem(key);
+          },
+          removeItem(key) {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+          },
+        },
+      },
+    })
   : null;
 
 const authPreferences = {
@@ -1652,6 +1676,13 @@ function renderAuthModal(mode = "choice") {
     const email = document.getElementById("authEmail").value.trim();
     const password = document.getElementById("authPassword").value;
 
+    if (mode === "login") {
+      const shouldRememberDevice = document.getElementById("rememberDevice")?.checked ?? false;
+      const shouldStayLoggedIn = document.getElementById("stayLoggedIn")?.checked ?? false;
+      localStorage.setItem(authPreferences.rememberDevice, String(shouldRememberDevice));
+      localStorage.setItem(authPreferences.stayLoggedIn, String(shouldStayLoggedIn));
+    }
+
     const action = mode === "login"
       ? supabaseClient.auth.signInWithPassword({ email, password })
       : supabaseClient.auth.signUp({ email, password });
@@ -1664,11 +1695,6 @@ function renderAuthModal(mode = "choice") {
       return;
     }
 
-    const shouldRememberDevice = document.getElementById("rememberDevice")?.checked ?? false;
-    const shouldStayLoggedIn = document.getElementById("stayLoggedIn")?.checked ?? false;
-    localStorage.setItem(authPreferences.rememberDevice, String(shouldRememberDevice));
-    localStorage.setItem(authPreferences.stayLoggedIn, String(shouldStayLoggedIn));
-
     await hydrateAuth();
     el.modal.classList.add("hidden");
     el.modal.classList.remove("show");
@@ -1679,6 +1705,14 @@ function shouldPersistSession() {
   const rememberDevice = localStorage.getItem(authPreferences.rememberDevice) === "true";
   const stayLoggedIn = localStorage.getItem(authPreferences.stayLoggedIn) === "true";
   return rememberDevice && stayLoggedIn;
+}
+
+function clearSupabaseLocalSessionsIfNeeded() {
+  if (shouldPersistSession()) return;
+
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith("sb-") && key.includes("-auth-token"))
+    .forEach((key) => localStorage.removeItem(key));
 }
 
 async function hydrateAuth() {
@@ -1979,12 +2013,8 @@ function bindMenu() {
   el.manageImageInput.addEventListener("change", handleManageImageSelection);
 }
 
-window.addEventListener("beforeunload", async () => {
-  if (!supabaseClient || !state.user || shouldPersistSession()) return;
-  await supabaseClient.auth.signOut();
-});
-
 async function init() {
+  clearSupabaseLocalSessionsIfNeeded();
   state.readMessageIds = loadReadMessageIds();
   bindMenu();
   initFilters();
