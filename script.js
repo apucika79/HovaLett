@@ -202,6 +202,8 @@ const el = {
   leftPanel: document.getElementById("leftPanel"),
   reportPanelTitle: document.getElementById("reportPanelTitle"),
   reportViewHint: document.getElementById("reportViewHint"),
+  filterDrawerToggle: document.getElementById("filterDrawerToggle"),
+  filterDrawerBackdrop: document.getElementById("filterDrawerBackdrop"),
 };
 
 let selectedOwnReport = null;
@@ -589,7 +591,12 @@ function updateMenuViewState() {
   el.myMessagesBtn.classList.toggle("active-menu-btn", isMessages);
   el.homeBtn.classList.toggle("active-menu-btn", isHome);
   if (el.leftPanel) {
-    el.leftPanel.classList.toggle("hidden", isMyReports);
+    const shouldHideFilterDrawer = isMyReports || isMessages;
+    el.leftPanel.classList.toggle("hidden", shouldHideFilterDrawer);
+    el.filterDrawerToggle?.classList.toggle("hidden", shouldHideFilterDrawer);
+    if (shouldHideFilterDrawer) {
+      setFilterDrawerOpen(false);
+    }
   }
   document.body.classList.toggle("messages-view", isMessages);
 }
@@ -601,6 +608,20 @@ function refreshMapLayout() {
     map.invalidateSize();
     setTimeout(() => map.invalidateSize(), 120);
   });
+}
+
+function setFilterDrawerOpen(isOpen) {
+  if (!el.leftPanel || !el.filterDrawerToggle || !el.filterDrawerBackdrop) return;
+
+  const canOpen = !el.leftPanel.classList.contains("hidden");
+  const nextOpenState = Boolean(isOpen) && canOpen;
+
+  el.leftPanel.classList.toggle("is-open", nextOpenState);
+  el.filterDrawerToggle.classList.toggle("is-open", nextOpenState);
+  el.filterDrawerBackdrop.classList.toggle("hidden", !nextOpenState);
+  el.filterDrawerToggle.setAttribute("aria-expanded", String(nextOpenState));
+
+  refreshMapLayout();
 }
 
 function updateManageImageHelp() {
@@ -1995,6 +2016,15 @@ function bindMenu() {
   el.deleteReportBtn.addEventListener("click", handleDeleteReport);
   el.photoInput.addEventListener("change", enforceImageSelectionLimit);
   el.manageImageInput.addEventListener("change", handleManageImageSelection);
+
+  el.filterDrawerToggle?.addEventListener("click", () => {
+    const shouldOpen = !el.leftPanel.classList.contains("is-open");
+    setFilterDrawerOpen(shouldOpen);
+  });
+
+  el.filterDrawerBackdrop?.addEventListener("click", () => {
+    setFilterDrawerOpen(false);
+  });
 }
 
 async function init() {
