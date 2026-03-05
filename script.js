@@ -1773,6 +1773,8 @@ function initFilters() {
 }
 
 function initReportFlow() {
+  let datePickerControls = null;
+
   const advanceToReportForm = () => {
     setMarkerPlacementMode(false);
     el.helyModal.classList.add("hidden");
@@ -1825,17 +1827,23 @@ function initReportFlow() {
     state.pendingLocationType = "utca";
     el.valasztoModal.classList.add("hidden");
     el.datumModal.classList.remove("hidden");
-    initializeDatePicker();
+    datePickerControls = initializeDatePicker();
   });
 
   document.getElementById("modalJarmuBtn").addEventListener("click", () => {
     state.pendingLocationType = "jarmu";
     el.valasztoModal.classList.add("hidden");
     el.datumModal.classList.remove("hidden");
-    initializeDatePicker();
+    datePickerControls = initializeDatePicker();
   });
 
   document.getElementById("datumModalOkBtn").addEventListener("click", () => {
+    const isValidSelection = datePickerControls?.validate?.() ?? true;
+    if (!isValidSelection) {
+      alert("A mai dátumhoz nem adhatsz meg jövőbeli időpontot.");
+      return;
+    }
+
     el.datumModal.classList.add("hidden");
     el.helyModal.classList.remove("hidden");
     setMarkerPlacementMode(true);
@@ -1891,18 +1899,56 @@ function initializeDatePicker() {
   dateInput.max = currentDate;
   timeInput.value = currentTime;
 
-  const updateDateTime = () => {
+  const getSafeSelectedDateTime = () => {
     const selectedDate = dateInput.value || currentDate;
     const selectedTime = timeInput.value || currentTime;
-    const date = new Date(`${selectedDate}T${selectedTime}`);
+    const selectedDateTime = new Date(`${selectedDate}T${selectedTime}`);
+    const maxAllowedDateTime = new Date();
+    maxAllowedDateTime.setSeconds(0, 0);
+
+    if (!Number.isFinite(selectedDateTime.getTime())) {
+      return { isValid: false, date: maxAllowedDateTime };
+    }
+
+    if (selectedDateTime.getTime() > maxAllowedDateTime.getTime()) {
+      return { isValid: false, date: maxAllowedDateTime };
+    }
+
+    return { isValid: true, date: selectedDateTime };
+  };
+
+  const syncTimeConstraints = () => {
+    const latestNow = new Date();
+    const latestDate = latestNow.toISOString().slice(0, 10);
+    const latestTime = `${String(latestNow.getHours()).padStart(2, "0")}:${String(latestNow.getMinutes()).padStart(2, "0")}`;
+
+    dateInput.max = latestDate;
+    timeInput.max = dateInput.value === latestDate ? latestTime : "";
+  };
+
+  const updateDateTime = () => {
+    syncTimeConstraints();
+    const { isValid, date } = getSafeSelectedDateTime();
     state.reportDateTime = date;
+
+    if (!isValid) {
+      dateInput.value = date.toISOString().slice(0, 10);
+      timeInput.value = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    }
+
     const dayName = date.toLocaleDateString("hu-HU", { weekday: "long" });
     dayOfWeek.textContent = dayName[0].toUpperCase() + dayName.slice(1);
+
+    return isValid;
   };
 
   dateInput.onchange = updateDateTime;
   timeInput.onchange = updateDateTime;
   updateDateTime();
+
+  return {
+    validate: updateDateTime,
+  };
 }
 
 function bindMenu() {
