@@ -137,6 +137,11 @@ const messagePreferences = {
   readMessageIds: "hovalett.readMessageIds",
 };
 
+const enabledSocialProviders = [
+  { id: "facebook", label: "Facebook" },
+  { id: "google", label: "Google" },
+];
+
 const el = {
   foundBtn: document.getElementById("foundBtn"),
   lostBtn: document.getElementById("lostBtn"),
@@ -429,7 +434,12 @@ function sanitizeUrl(value, options = {}) {
 
 function renderMessageRows(messages = []) {
   if (!messages.length) {
-    return '<p>Még nincsenek üzeneteid.</p>';
+    return `
+      <div class="message-empty-state" role="status" aria-live="polite">
+        <h4>Még nincs üzeneted</h4>
+        <p>Ha érdekel egy bejelentés, nyisd meg a részleteit és indíts beszélgetést az Üzenetküldés gombbal.</p>
+      </div>
+    `;
   }
 
   const reportById = new Map(state.reports.map((report) => [Number(report.id), report]));
@@ -1546,19 +1556,24 @@ function renderAuthModal(mode = "choice") {
   }
 
   if (mode === "social-login") {
+    const providerButtonsHtml = enabledSocialProviders
+      .map((provider) => `<button data-provider="${provider.id}" class="auth-provider-btn">${provider.label}</button>`)
+      .join("");
+
     el.modalContent.innerHTML = `
       <button class="modal-close-btn" data-auth-close="true" aria-label="Bezárás">✕</button>
       <h3>Bejelentkezés</h3>
       <p>Válassz bejelentkezési módot:</p>
       <div class="auth-provider-list">
-        <button data-provider="facebook" class="auth-provider-btn">Facebook</button>
-        <button data-provider="google" class="auth-provider-btn">Google</button>
+        ${providerButtonsHtml}
       </div>
       <div class="modal-actions">
         <button id="openEmailLoginBtn" class="modal-primary-btn">Email és jelszó</button>
         <button id="authBackBtn" class="modal-secondary-btn">Vissza</button>
       </div>
     `;
+
+    el.modalContent.querySelectorAll('[data-provider="instagram"]').forEach((button) => button.remove());
 
     document.querySelector("[data-auth-close='true']").onclick = () => {
       el.modal.classList.add("hidden");

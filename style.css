@@ -523,6 +523,26 @@ body.messages-view #messagesSection {
   gap: 8px;
 }
 
+.message-empty-state {
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 18px;
+  text-align: center;
+  color: #334155;
+}
+
+.message-empty-state h4 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.message-empty-state p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .message-row {
   display: grid;
   grid-template-columns: 56px minmax(120px, 170px) minmax(160px, 220px) minmax(150px, 190px) minmax(0, 1fr) auto;
