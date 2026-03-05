@@ -1071,9 +1071,6 @@ function reportDetailHtml(report) {
   const reportTitle = escapeHtml(report.cim || "-");
   const reportDescription = escapeHtml(report.leiras || "-");
   const createdAt = new Date(report.created_at).toLocaleString("hu-HU");
-  const primaryImage = imageUrls[0]
-    ? `<button class="popup-primary-image-btn" data-popup-image-report="${report.id}" data-image-index="0" type="button" aria-label="Elsődleges kép megnyitása"><img src="${imageUrls[0]}" alt="A bejelentés elsődleges képe"></button>`
-    : '<div class="popup-primary-image-placeholder" aria-label="Nincs feltöltött elsődleges kép"><span class="camera-icon">📷</span></div>';
   const imageRibbon = imageUrls.length > 0
     ? `<div class="popup-image-ribbon">${imageUrls.map((url, index) => `<button class="popup-thumb-btn" data-popup-image-report="${report.id}" data-image-index="${index}" type="button"><img src="${url}" alt="Bejelentés kép ${index + 1}"></button>`).join("")}</div>`
     : '<p class="popup-no-image">Ehhez a bejelentéshez nincs feltöltött kép.</p>';
@@ -1094,7 +1091,6 @@ function reportDetailHtml(report) {
           <strong>Cím:</strong> ${reportTitle}<br>
           <strong>Leírás:</strong> ${reportDescription}
         </div>
-        <div class="report-detail-media">${primaryImage}</div>
       </div>
       ${imageRibbon}
       <div class="popup-action-row">${mapFocusButton}${reportButton}${msgButton}</div>
