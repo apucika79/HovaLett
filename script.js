@@ -347,6 +347,16 @@ async function createReport(payloadBase) {
     throw new Error("Supabase nincs beállítva, mentés nem lehetséges.");
   }
 
+  const insertWithoutReportCode = async () => {
+    const { error } = await supabaseClient
+      .from("bejelentesek")
+      .insert([payloadBase]);
+
+    if (error) {
+      throw new Error(`Mentési hiba: ${error.message}`);
+    }
+  };
+
   const preferredCode = String(payloadBase.report_code || "").trim();
 
   for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
@@ -362,7 +372,17 @@ async function createReport(payloadBase) {
 
     if (!error) return;
 
-    const isUniqueConstraint = error.code === "23505" || String(error.message || "").toLowerCase().includes("duplicate");
+    const lowerErrorMessage = String(error.message || "").toLowerCase();
+    const isMissingReportCodeColumn =
+      lowerErrorMessage.includes("report_code") &&
+      lowerErrorMessage.includes("schema cache");
+
+    if (isMissingReportCodeColumn) {
+      await insertWithoutReportCode();
+      return;
+    }
+
+    const isUniqueConstraint = error.code === "23505" || lowerErrorMessage.includes("duplicate");
     if (!isUniqueConstraint) {
       throw new Error(`Mentési hiba: ${error.message}`);
     }
