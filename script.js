@@ -1587,7 +1587,6 @@ function renderAuthModal(mode = "choice") {
       <div class="auth-provider-list">
         <button data-provider="facebook" class="auth-provider-btn">Facebook</button>
         <button data-provider="google" class="auth-provider-btn">Google</button>
-        <button data-provider="instagram" class="auth-provider-btn">Instagram</button>
       </div>
       <div class="modal-actions">
         <button id="openEmailLoginBtn" class="modal-primary-btn">Email és jelszó</button>
@@ -1609,9 +1608,7 @@ function renderAuthModal(mode = "choice") {
           options: { redirectTo: window.location.href },
         });
         if (error) {
-          alert(provider === "instagram"
-            ? "Az Instagram bejelentkezés jelenleg nem támogatott. Kérlek, használd a Facebook, Google vagy email opciót."
-            : error.message);
+          alert(error.message);
         }
       });
     });
