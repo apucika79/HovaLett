@@ -137,7 +137,7 @@ button {
 }
 
 .filter-drawer-toggle.is-open {
-  left: min(286px, calc(100vw - 42px));
+  left: 0;
 }
 
 .filter-drawer-backdrop {
@@ -170,7 +170,7 @@ button {
 }
 
 .report-drawer-toggle.is-open {
-  right: min(286px, calc(100vw - 42px));
+  right: 0;
 }
 
 .report-drawer-backdrop {
@@ -1003,10 +1003,10 @@ body.messages-view #messagesSection {
   }
 
   .filter-drawer-toggle.is-open {
-    left: min(275px, calc(100vw - 38px));
+    left: 0;
   }
 
   .report-drawer-toggle.is-open {
-    right: min(275px, calc(100vw - 38px));
+    right: 0;
   }
 }
