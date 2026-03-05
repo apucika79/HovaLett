@@ -5,6 +5,11 @@ body {
   text-align: center;
 }
 
+:root {
+  --drawer-width: min(300px, calc(100vw - 28px));
+  --drawer-open-offset: 10px;
+}
+
 .page-header {
   background-color: #f3f6fb;
   border-bottom: 1px solid #dce4ef;
@@ -82,7 +87,7 @@ button {
   position: fixed;
   top: 96px;
   right: 0;
-  width: min(300px, calc(100vw - 28px));
+  width: var(--drawer-width);
   max-height: calc(100vh - 114px);
   background-color: rgba(241, 241, 241, 0.92);
   backdrop-filter: blur(4px);
@@ -93,14 +98,14 @@ button {
 }
 
 #rightPanel.is-open {
-  transform: translateX(-10px);
+  transform: translateX(calc(-1 * var(--drawer-open-offset)));
 }
 
 #leftPanel {
   position: fixed;
   top: 96px;
   left: 0;
-  width: min(300px, calc(100vw - 28px));
+  width: var(--drawer-width);
   max-height: calc(100vh - 114px);
   background-color: rgba(241, 241, 241, 0.92);
   backdrop-filter: blur(4px);
@@ -111,7 +116,7 @@ button {
 }
 
 #leftPanel.is-open {
-  transform: translateX(10px);
+  transform: translateX(var(--drawer-open-offset));
 }
 
 .filter-drawer-toggle {
@@ -137,7 +142,7 @@ button {
 }
 
 .filter-drawer-toggle.is-open {
-  left: 0;
+  left: calc(var(--drawer-width) + var(--drawer-open-offset));
 }
 
 .filter-drawer-backdrop {
@@ -170,7 +175,7 @@ button {
 }
 
 .report-drawer-toggle.is-open {
-  right: 0;
+  right: calc(var(--drawer-width) + var(--drawer-open-offset));
 }
 
 .report-drawer-backdrop {
