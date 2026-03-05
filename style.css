@@ -190,22 +190,48 @@ button {
 
 #map { flex-grow: 1; margin: 0; border-radius: 10px; min-width: 0; }
 .filter-group { display: flex; justify-content: space-between; margin-bottom: 10px; }
-.filter-btn { flex: 1; padding: 10px; margin: 0 5px; font-weight: bold; border-radius: 6px; }
+.filter-btn {
+  flex: 1;
+  padding: 10px 34px 10px 12px;
+  margin: 0 5px;
+  font-weight: bold;
+  border-radius: 6px;
+  position: relative;
+}
 .filter-btn.green { background-color: #4CAF50; }
 .filter-btn.red { background-color: #f44336; }
 .filter-btn.active { box-shadow: 0 0 0 2px #fff inset; transform: scale(1.05); }
+
+.filter-btn::after,
+.filter-cat::after {
+  content: "○";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.filter-btn.active::after,
+.filter-cat.active::after {
+  content: "✓";
+}
 
 .filter-categories { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .filter-cat {
   width: 90%;
   height: 40px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   font-size: 14px;
   border: none;
   border-radius: 6px;
   background-color: #2196F3;
+  padding: 0 34px 0 12px;
+  position: relative;
 }
 .filter-cat.active { background-color: #42a5f5; font-weight: bold; }
 
