@@ -347,11 +347,28 @@ async function createReport(payloadBase) {
     throw new Error("Supabase nincs beállítva, mentés nem lehetséges.");
   }
 
-  const { error } = await supabaseClient
-    .from("bejelentesek")
-    .insert([payloadBase]);
+  const preferredCode = String(payloadBase.report_code || "").trim();
 
-  if (error) throw new Error(`Mentési hiba: ${error.message}`);
+  for (let attempt = 0; attempt < REPORT_CODE_MAX_ATTEMPTS; attempt += 1) {
+    const reportCode = attempt === 0 && preferredCode ? preferredCode : generateReportCodeCandidate();
+    const payload = {
+      ...payloadBase,
+      report_code: reportCode,
+    };
+
+    const { error } = await supabaseClient
+      .from("bejelentesek")
+      .insert([payload]);
+
+    if (!error) return;
+
+    const isUniqueConstraint = error.code === "23505" || String(error.message || "").toLowerCase().includes("duplicate");
+    if (!isUniqueConstraint) {
+      throw new Error(`Mentési hiba: ${error.message}`);
+    }
+  }
+
+  throw new Error("Mentési hiba: nem sikerült egyedi azonosítót generálni.");
 }
 
 function normalizeReport(report) {
