@@ -602,7 +602,7 @@ function updateMenuViewState() {
     }
   }
   if (el.rightPanel) {
-    const shouldHideReportDrawer = isMyReports || isMessages;
+    const shouldHideReportDrawer = isMessages;
     el.rightPanel.classList.toggle("hidden", shouldHideReportDrawer);
     el.reportDrawerToggle?.classList.toggle("hidden", shouldHideReportDrawer);
     if (shouldHideReportDrawer) {
