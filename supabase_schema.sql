@@ -56,6 +56,21 @@ create policy "bejelentesek_select_public"
   to public
   using (true);
 
+-- saját bejelentést módosíthatja
+drop policy if exists "bejelentesek_update_own" on public.bejelentesek;
+create policy "bejelentesek_update_own"
+  on public.bejelentesek for update
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- saját bejelentést törölheti
+drop policy if exists "bejelentesek_delete_own" on public.bejelentesek;
+create policy "bejelentesek_delete_own"
+  on public.bejelentesek for delete
+  to authenticated
+  using (auth.uid() = user_id);
+
 -- üzeneteket csak a küldő és címzett láthatja
 drop policy if exists "uzenetek_select_participants" on public.uzenetek;
 create policy "uzenetek_select_participants"
