@@ -204,6 +204,9 @@ const el = {
   reportViewHint: document.getElementById("reportViewHint"),
   filterDrawerToggle: document.getElementById("filterDrawerToggle"),
   filterDrawerBackdrop: document.getElementById("filterDrawerBackdrop"),
+  rightPanel: document.getElementById("rightPanel"),
+  reportDrawerToggle: document.getElementById("reportDrawerToggle"),
+  reportDrawerBackdrop: document.getElementById("reportDrawerBackdrop"),
 };
 
 let selectedOwnReport = null;
@@ -598,6 +601,14 @@ function updateMenuViewState() {
       setFilterDrawerOpen(false);
     }
   }
+  if (el.rightPanel) {
+    const shouldHideReportDrawer = isMyReports || isMessages;
+    el.rightPanel.classList.toggle("hidden", shouldHideReportDrawer);
+    el.reportDrawerToggle?.classList.toggle("hidden", shouldHideReportDrawer);
+    if (shouldHideReportDrawer) {
+      setReportDrawerOpen(false);
+    }
+  }
   document.body.classList.toggle("messages-view", isMessages);
 }
 
@@ -620,6 +631,20 @@ function setFilterDrawerOpen(isOpen) {
   el.filterDrawerToggle.classList.toggle("is-open", nextOpenState);
   el.filterDrawerBackdrop.classList.toggle("hidden", !nextOpenState);
   el.filterDrawerToggle.setAttribute("aria-expanded", String(nextOpenState));
+
+  refreshMapLayout();
+}
+
+function setReportDrawerOpen(isOpen) {
+  if (!el.rightPanel || !el.reportDrawerToggle || !el.reportDrawerBackdrop) return;
+
+  const canOpen = !el.rightPanel.classList.contains("hidden");
+  const nextOpenState = Boolean(isOpen) && canOpen;
+
+  el.rightPanel.classList.toggle("is-open", nextOpenState);
+  el.reportDrawerToggle.classList.toggle("is-open", nextOpenState);
+  el.reportDrawerBackdrop.classList.toggle("hidden", !nextOpenState);
+  el.reportDrawerToggle.setAttribute("aria-expanded", String(nextOpenState));
 
   refreshMapLayout();
 }
@@ -2024,6 +2049,15 @@ function bindMenu() {
 
   el.filterDrawerBackdrop?.addEventListener("click", () => {
     setFilterDrawerOpen(false);
+  });
+
+  el.reportDrawerToggle?.addEventListener("click", () => {
+    const shouldOpen = !el.rightPanel.classList.contains("is-open");
+    setReportDrawerOpen(shouldOpen);
+  });
+
+  el.reportDrawerBackdrop?.addEventListener("click", () => {
+    setReportDrawerOpen(false);
   });
 }
 
