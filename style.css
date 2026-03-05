@@ -119,7 +119,7 @@ button {
   left: 0;
   top: 52%;
   transform: translateY(-50%);
-  z-index: 840;
+  z-index: 860;
   writing-mode: vertical-rl;
   text-orientation: mixed;
   border-radius: 0 10px 10px 0;
@@ -129,6 +129,7 @@ button {
   letter-spacing: 0.4px;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.22);
   padding: 14px 9px;
+  transition: left 0.3s ease, background-color 0.2s ease;
 }
 
 .filter-drawer-toggle:hover {
@@ -151,7 +152,7 @@ button {
   right: 0;
   top: 52%;
   transform: translateY(-50%);
-  z-index: 840;
+  z-index: 860;
   writing-mode: vertical-lr;
   text-orientation: mixed;
   border-radius: 10px 0 0 10px;
@@ -161,6 +162,7 @@ button {
   letter-spacing: 0.4px;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.22);
   padding: 14px 9px;
+  transition: right 0.3s ease, background-color 0.2s ease;
 }
 
 .report-drawer-toggle:hover {
