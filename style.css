@@ -80,6 +80,34 @@ button {
 
 #foundBtn { background-color: #4CAF50; }
 #lostBtn { background-color: #f44336; }
+
+#foundBtn,
+#lostBtn {
+  color: #fff;
+  animation: ctaPulse 2.2s ease-in-out infinite;
+}
+
+#foundBtn {
+  background-color: rgba(76, 175, 80, 0.72);
+}
+
+#lostBtn {
+  background-color: rgba(244, 67, 54, 0.72);
+  animation-delay: 0.35s;
+}
+
+@keyframes ctaPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.22);
+  }
+  50% {
+    transform: scale(1.045);
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+}
+
 .hidden { display: none !important; }
 
 .main-container {
