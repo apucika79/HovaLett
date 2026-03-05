@@ -1146,7 +1146,6 @@ function bindGlobalCloseButtons() {
   };
 
   document.addEventListener("click", handleCloseEvent, true);
-  document.addEventListener("pointerup", handleCloseEvent, true);
 }
 
 function openReportDetailModal(report) {
