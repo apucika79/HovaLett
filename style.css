@@ -8,6 +8,7 @@ body {
 :root {
   --drawer-width: min(300px, calc(100vw - 28px));
   --drawer-open-offset: 0px;
+  --tab-szelesseg: 44px;
 }
 
 .page-header {
@@ -79,7 +80,7 @@ button {
   width: 250px;
   background-color: #f1f1f1;
   padding: 10px;
-  overflow-y: auto;
+  overflow: visible;
   border-radius: 10px;
 }
 
@@ -92,7 +93,7 @@ button {
   background-color: rgba(241, 241, 241, 0.92);
   backdrop-filter: blur(4px);
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.16);
-  transform: translateX(calc(100% + 20px));
+  transform: translateX(calc(100% - var(--tab-szelesseg)));
   transition: transform 0.3s ease;
   z-index: 850;
 }
@@ -110,7 +111,7 @@ button {
   background-color: rgba(241, 241, 241, 0.92);
   backdrop-filter: blur(4px);
   box-shadow: 4px 0 16px rgba(0, 0, 0, 0.16);
-  transform: translateX(calc(-100% - 20px));
+  transform: translateX(calc(-100% + var(--tab-szelesseg)));
   transition: transform 0.3s ease;
   z-index: 850;
 }
@@ -120,11 +121,12 @@ button {
 }
 
 .filter-drawer-toggle {
-  position: fixed;
-  left: 0;
-  top: 52%;
+  position: absolute;
+  right: calc(-1 * var(--tab-szelesseg));
+  top: 50%;
+  width: var(--tab-szelesseg);
   transform: translateY(-50%);
-  z-index: 860;
+  z-index: 9999;
   writing-mode: vertical-rl;
   text-orientation: mixed;
   border-radius: 0 10px 10px 0;
@@ -134,7 +136,7 @@ button {
   letter-spacing: 0.4px;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.22);
   padding: 14px 9px;
-  transition: left 0.3s ease, transform 0.3s ease, background-color 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .filter-drawer-toggle:hover {
@@ -142,8 +144,7 @@ button {
 }
 
 .filter-drawer-toggle.is-open {
-  left: var(--drawer-width);
-  transform: translate(-100%, -50%);
+  background-color: #1e40af;
 }
 
 .filter-drawer-backdrop {
@@ -154,11 +155,12 @@ button {
 }
 
 .report-drawer-toggle {
-  position: fixed;
-  right: 0;
-  top: 52%;
+  position: absolute;
+  left: calc(-1 * var(--tab-szelesseg));
+  top: 50%;
+  width: var(--tab-szelesseg);
   transform: translateY(-50%);
-  z-index: 860;
+  z-index: 9999;
   writing-mode: vertical-lr;
   text-orientation: mixed;
   border-radius: 10px 0 0 10px;
@@ -168,7 +170,7 @@ button {
   letter-spacing: 0.4px;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.22);
   padding: 14px 9px;
-  transition: right 0.3s ease, transform 0.3s ease, background-color 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .report-drawer-toggle:hover {
@@ -176,8 +178,7 @@ button {
 }
 
 .report-drawer-toggle.is-open {
-  right: var(--drawer-width);
-  transform: translate(100%, -50%);
+  background-color: #1e40af;
 }
 
 .report-drawer-backdrop {
