@@ -28,13 +28,7 @@
   </header>
 
   <div class="main-container">
-    <button id="filterDrawerToggle" class="filter-drawer-toggle" type="button" aria-controls="leftPanel" aria-expanded="false">
-      Szűrők
-    </button>
     <div id="filterDrawerBackdrop" class="filter-drawer-backdrop hidden" aria-hidden="true"></div>
-    <button id="reportDrawerToggle" class="report-drawer-toggle" type="button" aria-controls="rightPanel" aria-expanded="false">
-      Jelentések
-    </button>
     <div id="reportDrawerBackdrop" class="report-drawer-backdrop hidden" aria-hidden="true"></div>
 
     <div id="leftPanel">
@@ -53,6 +47,9 @@
         <button class="filter-cat active" data-cat="Ékszer">Ékszer</button>
         <button class="filter-cat active" data-cat="Egyéb">Egyéb</button>
       </div>
+      <button id="filterDrawerToggle" class="filter-drawer-toggle" type="button" aria-controls="leftPanel" aria-expanded="false">
+        Szűrők
+      </button>
     </div>
 
     <div id="map"></div>
@@ -61,6 +58,9 @@
       <h2 id="reportPanelTitle">Legfrissebb jelentések</h2>
       <p id="reportViewHint" class="report-view-hint hidden"></p>
       <div id="reportItems" class="report-list"></div>
+      <button id="reportDrawerToggle" class="report-drawer-toggle" type="button" aria-controls="rightPanel" aria-expanded="false">
+        Jelentések
+      </button>
     </div>
   </div>
 
