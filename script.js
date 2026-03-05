@@ -463,25 +463,14 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function buildDemoMessage() {
-  const relatedReport = state.reports[0] || null;
-  const relatedReportTitle = relatedReport?.cim || "fekete hátizsák";
-  return {
-    id: -1,
-    report_id: Number(relatedReport?.id) || 0,
-    from_user_id: "teszt-felhasznalo",
-    to_user_id: state.user?.id || "demo-cimzett",
-    body: `Teszt üzenet: Szia! A(z) \"${relatedReportTitle}\" hirdetésed még aktív? Ha igen, tudok segíteni az egyeztetésben.`,
-    created_at: new Date().toISOString(),
-  };
-}
-
 function renderMessageRows(messages = []) {
-  const rowsToRender = messages.length ? messages : [buildDemoMessage()];
+  if (!messages.length) {
+    return '<p>Még nincsenek üzeneteid.</p>';
+  }
 
   const reportById = new Map(state.reports.map((report) => [Number(report.id), report]));
   const groupedByReport = new Map();
-  const sortedMessages = [...rowsToRender].sort((a, b) => {
+  const sortedMessages = [...messages].sort((a, b) => {
     const timeA = new Date(a.created_at).getTime();
     const timeB = new Date(b.created_at).getTime();
     if (timeA !== timeB) return timeA - timeB;
