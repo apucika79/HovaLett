@@ -102,6 +102,9 @@ button {
   transform: translateX(calc(100% - var(--tab-szelesseg)));
   transition: transform 0.3s ease;
   z-index: 850;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 #rightPanel.is-open {
@@ -243,6 +246,13 @@ button {
 .filter-cat.active { background-color: #42a5f5; font-weight: bold; }
 
 .report-list { display: flex; flex-direction: column; gap: 8px; }
+
+#rightPanel .report-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
 
 .report-view-hint {
   margin: 0 0 12px;
