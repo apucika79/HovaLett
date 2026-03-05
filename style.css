@@ -42,16 +42,25 @@ h1 { margin-top: 20px; }
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+  position: relative;
 }
 
 .map-button-row {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
   justify-content: center;
+  z-index: 600;
+  background: transparent;
+  pointer-events: none;
 }
 
 .map-button-row button {
   width: clamp(170px, 22vw, 240px);
   text-align: center;
+  pointer-events: auto;
 }
 
 button {
@@ -84,27 +93,24 @@ button {
 #foundBtn,
 #lostBtn {
   color: #fff;
-  animation: ctaPulse 2.2s ease-in-out infinite;
+  animation: ctaTextPulse 2.2s ease-in-out infinite;
 }
 
 #foundBtn {
-  background-color: rgba(76, 175, 80, 0.72);
+  background-color: #4CAF50;
 }
 
 #lostBtn {
-  background-color: rgba(244, 67, 54, 0.72);
-  animation-delay: 0.35s;
+  background-color: #f44336;
 }
 
-@keyframes ctaPulse {
+@keyframes ctaTextPulse {
   0%,
   100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.22);
+    font-size: 14px;
   }
   50% {
-    transform: scale(1.045);
-    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+    font-size: 15.5px;
   }
 }
 
