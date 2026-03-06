@@ -14,6 +14,7 @@ function isSupabaseConfigUsable(url, key) {
 const state = {
   user: null,
   profile: null,
+  isAdmin: false,
   markers: [],
   reports: [],
   activeTypes: new Set(["talalt", "keresett"]),
@@ -168,6 +169,7 @@ const el = {
   homeBtn: document.getElementById("homeBtn"),
   myReportsBtn: document.getElementById("myReportsBtn"),
   myMessagesBtn: document.getElementById("myMessagesBtn"),
+  adminBtn: document.getElementById("adminBtn"),
   profileUserInfo: document.getElementById("profileUserInfo"),
   myReportsList: document.getElementById("myReportsList"),
   myReportsSection: document.getElementById("myReportsSection"),
@@ -207,6 +209,9 @@ const el = {
   rightPanel: document.getElementById("rightPanel"),
   reportDrawerToggle: document.getElementById("reportDrawerToggle"),
   reportDrawerBackdrop: document.getElementById("reportDrawerBackdrop"),
+  adminView: document.getElementById("adminView"),
+  adminReportRows: document.getElementById("adminReportRows"),
+  adminKpis: document.getElementById("adminKpis"),
 };
 
 let selectedOwnReport = null;
@@ -584,6 +589,7 @@ function updateVisibleItems() {
 
 function updateMenuViewState() {
   const isMyReports = state.viewMode === "myReports";
+  const isAdminView = state.viewMode === "admin";
   const isMessageOnlyProfileView =
     !el.profileView.classList.contains("hidden") &&
     !el.messagesSection.classList.contains("hidden") &&
@@ -593,8 +599,9 @@ function updateMenuViewState() {
   el.myReportsBtn.classList.toggle("active-menu-btn", isMyReports);
   el.myMessagesBtn.classList.toggle("active-menu-btn", isMessages);
   el.homeBtn.classList.toggle("active-menu-btn", isHome);
+  el.adminBtn?.classList.toggle("active-menu-btn", isAdminView);
   if (el.leftPanel) {
-    const shouldHideFilterDrawer = isMyReports || isMessages;
+    const shouldHideFilterDrawer = isMyReports || isMessages || isAdminView;
     el.leftPanel.classList.toggle("hidden", shouldHideFilterDrawer);
     el.filterDrawerToggle?.classList.toggle("hidden", shouldHideFilterDrawer);
     if (shouldHideFilterDrawer) {
@@ -602,7 +609,7 @@ function updateMenuViewState() {
     }
   }
   if (el.rightPanel) {
-    const shouldHideReportDrawer = isMessages;
+    const shouldHideReportDrawer = isMessages || isAdminView;
     el.rightPanel.classList.toggle("hidden", shouldHideReportDrawer);
     el.reportDrawerToggle?.classList.toggle("hidden", shouldHideReportDrawer);
     if (shouldHideReportDrawer) {
@@ -610,6 +617,93 @@ function updateMenuViewState() {
     }
   }
   document.body.classList.toggle("messages-view", isMessages);
+}
+
+function formatStatusLabel(status) {
+  switch (status) {
+    case "aktiv":
+      return "Aktív";
+    case "review":
+      return "Ellenőrzés";
+    case "lezart":
+      return "Lezárt";
+    case "rejected":
+      return "Elutasított";
+    default:
+      return status || "-";
+  }
+}
+
+function renderAdminDashboard() {
+  if (!el.adminReportRows || !el.adminKpis) return;
+
+  const reports = [...state.reports];
+  const total = reports.length;
+  const activeCount = reports.filter((report) => report.status === "aktiv").length;
+  const reviewCount = reports.filter((report) => report.status === "review").length;
+  const closedCount = reports.filter((report) => ["lezart", "rejected"].includes(report.status)).length;
+
+  el.adminKpis.innerHTML = `
+    <div class="admin-kpi-card"><strong>Összes bejelentés</strong><span>${total}</span></div>
+    <div class="admin-kpi-card"><strong>Aktív</strong><span>${activeCount}</span></div>
+    <div class="admin-kpi-card"><strong>Ellenőrzés</strong><span>${reviewCount}</span></div>
+    <div class="admin-kpi-card"><strong>Lezárt/Elutasított</strong><span>${closedCount}</span></div>
+  `;
+
+  if (!reports.length) {
+    el.adminReportRows.innerHTML = "<tr><td colspan='7'>Nincs admin nézetben elérhető bejelentés.</td></tr>";
+    return;
+  }
+
+  el.adminReportRows.innerHTML = reports.map((report) => `
+    <tr>
+      <td>${escapeHtml(report.report_code || "-")}</td>
+      <td>${escapeHtml(typeToLabel[report.tipus] || report.tipus || "-")}</td>
+      <td>${escapeHtml(report.kategoria || "-")}</td>
+      <td>${escapeHtml(report.cim || "-")}</td>
+      <td><span class="admin-status-pill">${escapeHtml(formatStatusLabel(report.status))}</span></td>
+      <td>${new Date(report.created_at).toLocaleString("hu-HU")}</td>
+      <td>
+        <select class="admin-status-select" data-admin-status-id="${report.id}">
+          <option value="aktiv" ${report.status === "aktiv" ? "selected" : ""}>Aktív</option>
+          <option value="review" ${report.status === "review" ? "selected" : ""}>Ellenőrzés</option>
+          <option value="lezart" ${report.status === "lezart" ? "selected" : ""}>Lezárt</option>
+          <option value="rejected" ${report.status === "rejected" ? "selected" : ""}>Elutasított</option>
+        </select>
+      </td>
+    </tr>
+  `).join("");
+
+  document.querySelectorAll("[data-admin-status-id]").forEach((select) => {
+    select.addEventListener("change", async () => {
+      const reportId = Number(select.dataset.adminStatusId);
+      if (!Number.isFinite(reportId)) return;
+      await updateReportStatusAsAdmin(reportId, select.value);
+    });
+  });
+}
+
+async function updateReportStatusAsAdmin(reportId, nextStatus) {
+  if (!supabaseClient || !state.user || !state.isAdmin) return;
+
+  const { data, error } = await supabaseClient
+    .from("bejelentesek")
+    .update({ status: nextStatus })
+    .eq("id", reportId)
+    .select("id");
+
+  if (error) {
+    alert(`Státusz módosítás sikertelen: ${error.message}`);
+    return;
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    alert("Státusz nem változott (nincs jogosultság vagy a bejelentés nem található).");
+    return;
+  }
+
+  await loadReports();
+  renderAdminDashboard();
 }
 
 function refreshMapLayout() {
@@ -1409,6 +1503,30 @@ async function refreshProfileData(options = {}) {
   });
 }
 
+async function fetchCurrentUserProfile() {
+  if (!supabaseClient || !state.user) {
+    state.profile = null;
+    state.isAdmin = false;
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("id, role")
+    .eq("id", state.user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Profil lekérés sikertelen:", error.message);
+    state.profile = null;
+    state.isAdmin = false;
+    return;
+  }
+
+  state.profile = data || null;
+  state.isAdmin = (data?.role || "user") === "admin";
+}
+
 function showProfile() {
   if (!state.user) {
     renderAuthModal("social-login");
@@ -1418,6 +1536,7 @@ function showProfile() {
   }
   state.viewMode = "messages";
   el.mainContainer.classList.add("hidden");
+  el.adminView?.classList.add("hidden");
   el.bejelentesBox.classList.add("hidden");
   if (el.valasztoBox) el.valasztoBox.classList.add("hidden");
   el.profileView.classList.remove("hidden");
@@ -1434,12 +1553,35 @@ function showHome() {
   state.viewMode = "home";
   if (el.reportPanelTitle) el.reportPanelTitle.textContent = "Legfrissebb jelentések";
   el.profileView.classList.add("hidden");
+  el.adminView?.classList.add("hidden");
   el.mainContainer.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
   updateMenuViewState();
   updateVisibleItems();
   renderMapMarkers();
   refreshMapLayout();
+}
+
+function showAdminPanel() {
+  if (!state.user) {
+    renderAuthModal("social-login");
+    el.modal.classList.remove("hidden");
+    el.modal.classList.add("show");
+    return;
+  }
+
+  if (!state.isAdmin) {
+    alert("Ehhez a nézethez admin jogosultság szükséges.");
+    return;
+  }
+
+  state.viewMode = "admin";
+  el.profileView.classList.add("hidden");
+  el.mainContainer.classList.add("hidden");
+  el.adminView?.classList.remove("hidden");
+  el.bejelentesBox.classList.add("hidden");
+  updateMenuViewState();
+  renderAdminDashboard();
 }
 
 function showMyReports() {
@@ -1454,6 +1596,7 @@ function showMyReports() {
   if (el.reportPanelTitle) el.reportPanelTitle.textContent = "Legfrissebb jelentéseim";
   if (el.myReportsSection) el.myReportsSection.classList.remove("hidden");
   if (el.messagesSection) el.messagesSection.classList.remove("hidden");
+  el.adminView?.classList.add("hidden");
   el.profileView.classList.add("hidden");
   el.mainContainer.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
@@ -1763,6 +1906,7 @@ async function hydrateAuth() {
 
   const { data } = await supabaseClient.auth.getUser();
   state.user = data.user || null;
+  await fetchCurrentUserProfile();
 
   if (state.user) {
     el.loggedUser.textContent = `Bejelentkezve: ${state.user.email}`;
@@ -1770,11 +1914,13 @@ async function hydrateAuth() {
     el.loginBtn.classList.add("hidden");
     el.logoutBtn.classList.remove("hidden");
     el.homeBtn.classList.remove("hidden");
+    el.adminBtn?.classList.toggle("hidden", !state.isAdmin);
   } else {
     el.loggedUser.classList.add("hidden");
     el.loginBtn.classList.remove("hidden");
     el.logoutBtn.classList.add("hidden");
     el.homeBtn.classList.add("hidden");
+    el.adminBtn?.classList.add("hidden");
     showHome();
   }
 
@@ -2045,6 +2191,7 @@ function bindMenu() {
   el.homeBtn.addEventListener("click", showHome);
   el.myReportsBtn.addEventListener("click", showMyReports);
   el.myMessagesBtn.addEventListener("click", showProfile);
+  el.adminBtn?.addEventListener("click", showAdminPanel);
 
   el.sendFirstMessageBtn.addEventListener("click", sendMessageFromModal);
   el.cancelFirstMessageBtn.addEventListener("click", () => el.messageModal.classList.add("hidden"));

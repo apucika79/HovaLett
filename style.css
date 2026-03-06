@@ -1128,3 +1128,84 @@ body.messages-view #messagesSection {
     max-height: calc(100vh - 86px);
   }
 }
+
+#adminView {
+  max-width: 1400px;
+  margin: 20px auto;
+  text-align: left;
+  background: #f8fafc;
+  border: 1px solid #dbe4ef;
+  border-radius: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.admin-header h3 {
+  margin: 0;
+}
+
+.admin-header p {
+  margin: 6px 0 14px;
+  color: #475569;
+}
+
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.admin-kpi-card {
+  background: #fff;
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-kpi-card span {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-table-wrap {
+  overflow: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 9px;
+  font-size: 13px;
+}
+
+.admin-table th {
+  background: #f1f5f9;
+  text-align: left;
+}
+
+.admin-status-pill {
+  display: inline-block;
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.admin-status-select {
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 7px;
+  background: #fff;
+}

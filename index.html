@@ -13,6 +13,7 @@
       <div id="topMenu">
         <button id="myReportsBtn" class="menu-btn">Jelentéseim</button>
         <button id="myMessagesBtn" class="menu-btn">Üzeneteim</button>
+        <button id="adminBtn" class="menu-btn hidden">Admin</button>
         <button id="menuLoginBtn" class="menu-btn">Bejelentkezés</button>
         <button id="homeBtn" class="menu-btn hidden">Főoldal</button>
         <button id="logoutBtn" class="menu-btn hidden">Kijelentkezés</button>
@@ -76,6 +77,30 @@
         <h3>Üzenetek</h3>
         <div id="messageList" class="report-list"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="adminView" class="hidden">
+    <div class="admin-header">
+      <h3>Admin felület</h3>
+      <p>Bejelentések moderálása és státuszváltás.</p>
+    </div>
+    <div class="admin-kpis" id="adminKpis"></div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Azonosító</th>
+            <th>Típus</th>
+            <th>Kategória</th>
+            <th>Cím</th>
+            <th>Státusz</th>
+            <th>Dátum</th>
+            <th>Művelet</th>
+          </tr>
+        </thead>
+        <tbody id="adminReportRows"></tbody>
+      </table>
     </div>
   </div>
 
