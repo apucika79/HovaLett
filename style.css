@@ -93,7 +93,6 @@ button {
 #foundBtn,
 #lostBtn {
   color: #fff;
-  animation: ctaTextPulse 2.2s ease-in-out infinite;
 }
 
 #foundBtn {
@@ -102,16 +101,6 @@ button {
 
 #lostBtn {
   background-color: #f44336;
-}
-
-@keyframes ctaTextPulse {
-  0%,
-  100% {
-    font-size: 14px;
-  }
-  50% {
-    font-size: 15.5px;
-  }
 }
 
 .hidden { display: none !important; }
