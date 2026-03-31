@@ -81,6 +81,27 @@ create table if not exists public.uzenetek (
   created_at timestamptz not null default now()
 );
 
+create index if not exists bejelentesek_created_at_idx
+  on public.bejelentesek (created_at desc);
+
+create index if not exists bejelentesek_status_created_at_idx
+  on public.bejelentesek (status, created_at desc);
+
+create index if not exists bejelentesek_user_created_at_idx
+  on public.bejelentesek (user_id, created_at desc);
+
+create index if not exists uzenetek_from_user_created_at_idx
+  on public.uzenetek (from_user_id, created_at desc);
+
+create index if not exists uzenetek_to_user_created_at_idx
+  on public.uzenetek (to_user_id, created_at desc);
+
+create index if not exists uzenetek_report_created_at_idx
+  on public.uzenetek (report_id, created_at desc);
+
+create index if not exists profiles_role_idx
+  on public.profiles (role);
+
 alter table public.bejelentesek enable row level security;
 alter table public.uzenetek enable row level security;
 alter table public.profiles enable row level security;

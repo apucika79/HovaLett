@@ -49,6 +49,14 @@ const state = {
   manageImageUrls: [],
   managePendingFiles: [],
   readMessageIds: new Set(),
+  pagination: {
+    reportsOffset: 0,
+    reportsHasMore: true,
+    profileReportsOffset: 0,
+    profileReportsHasMore: true,
+    messagesOffset: 0,
+    messagesHasMore: true,
+  },
 };
 
 const typeToLabel = {
@@ -90,6 +98,11 @@ const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 const MAX_DESCRIPTION_LENGTH = 150;
 const MIN_MARKER_DISTANCE_METERS = 12;
 const MAX_UPLOAD_IMAGES = 3;
+const REPORT_PAGE_SIZE = 60;
+const PROFILE_REPORT_PAGE_SIZE = 20;
+const MESSAGE_PAGE_SIZE = 20;
+const REPORT_RECENT_DAYS = 120;
+const REPORT_LIST_CACHE_KEY = "hovalett.reportListCache.v1";
 
 const MAP_MAX_ZOOM = 22;
 const MAP_NATIVE_TILE_MAX_ZOOM = 19;
@@ -174,6 +187,9 @@ const el = {
   myReportsList: document.getElementById("myReportsList"),
   myReportsSection: document.getElementById("myReportsSection"),
   messageList: document.getElementById("messageList"),
+  loadMoreReportsBtn: document.getElementById("loadMoreReportsBtn"),
+  loadMoreMyReportsBtn: document.getElementById("loadMoreMyReportsBtn"),
+  loadMoreMessagesBtn: document.getElementById("loadMoreMessagesBtn"),
   messagesSection: document.getElementById("messagesSection"),
   messageModal: document.getElementById("messageModal"),
   messageBody: document.getElementById("messageBody"),
@@ -216,6 +232,38 @@ const el = {
 
 let selectedOwnReport = null;
 const markerByReportId = new Map();
+
+function getRecentReportCutoffIso() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - REPORT_RECENT_DAYS);
+  return cutoff.toISOString();
+}
+
+function cacheReportList(reports = []) {
+  try {
+    localStorage.setItem(REPORT_LIST_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), reports }));
+  } catch {
+    // opcionális cache: ha nem írható, működünk nélküle
+  }
+}
+
+function loadCachedReportList() {
+  try {
+    const raw = localStorage.getItem(REPORT_LIST_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed?.reports)) return [];
+    return parsed.reports.map(normalizeReport);
+  } catch {
+    return [];
+  }
+}
+
+function updateLoadMoreButtons() {
+  if (el.loadMoreReportsBtn) el.loadMoreReportsBtn.classList.toggle("hidden", !state.pagination.reportsHasMore);
+  if (el.loadMoreMyReportsBtn) el.loadMoreMyReportsBtn.classList.toggle("hidden", !state.pagination.profileReportsHasMore);
+  if (el.loadMoreMessagesBtn) el.loadMoreMessagesBtn.classList.toggle("hidden", !state.pagination.messagesHasMore);
+}
 
 function syncFocusedMarkerState() {
   const hasFocusedMarker = Boolean(state.reportFocus.reportId);
@@ -1411,28 +1459,56 @@ async function checkSupabaseConnection() {
   return true;
 }
 
-async function loadReports() {
+async function loadReports(options = {}) {
+  const reset = options.reset ?? true;
   if (!state.supabaseOnline) {
-    state.reports = [];
-    setInfo("Supabase kapcsolat hiba: csak éles adatbázisból töltünk. Ellenőrizd az RLS policy-ket és a táblákat.");
+    state.reports = loadCachedReportList();
+    state.pagination.reportsHasMore = false;
+    setInfo("Supabase kapcsolat hiba: cache-elt listát használunk. Ellenőrizd az RLS policy-ket és a táblákat.");
     updateVisibleItems();
     renderMapMarkers();
+    updateLoadMoreButtons();
     return;
   }
-  const { data, error } = await supabaseClient.from("bejelentesek").select("*").order("created_at", { ascending: false });
+
+  if (reset) {
+    state.pagination.reportsOffset = 0;
+    state.pagination.reportsHasMore = true;
+  }
+  if (!state.pagination.reportsHasMore && !reset) return;
+
+  const from = state.pagination.reportsOffset;
+  const to = from + REPORT_PAGE_SIZE - 1;
+  const cutoff = getRecentReportCutoffIso();
+  const query = supabaseClient
+    .from("bejelentesek")
+    .select("*")
+    .gte("created_at", cutoff)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+  const { data, error } = await query;
+
   if (error) {
     setInfo(`Bejelentések betöltése sikertelen: ${error.message}`);
-    state.reports = [];
+    if (reset) state.reports = [];
     updateVisibleItems();
     renderMapMarkers();
+    updateLoadMoreButtons();
     return;
   }
-  state.reports = (data || []).map(normalizeReport);
-  if (!data || data.length === 0) {
+
+  const normalizedBatch = (data || []).map(normalizeReport);
+  state.reports = reset ? normalizedBatch : [...state.reports, ...normalizedBatch];
+  state.pagination.reportsOffset = state.reports.length;
+  state.pagination.reportsHasMore = normalizedBatch.length === REPORT_PAGE_SIZE;
+  cacheReportList(state.reports);
+
+  if (reset && (!data || data.length === 0)) {
     setInfo("Nincs még éles bejelentés az adatbázisban.");
   }
   updateVisibleItems();
   renderMapMarkers();
+  updateLoadMoreButtons();
 }
 
 async function refreshProfileData(options = {}) {
@@ -1447,35 +1523,74 @@ async function refreshProfileData(options = {}) {
 
   const shouldLoadReports = options.loadReports ?? true;
   const shouldLoadMessages = options.loadMessages ?? true;
+  const resetReports = options.resetReports ?? true;
+  const resetMessages = options.resetMessages ?? true;
 
   if (shouldLoadReports) {
-    el.myReportsList.innerHTML = "<p>Bejelentések betöltése...</p>";
-    const { data: myReports, error: myReportsError } = await supabaseClient
-      .from("bejelentesek")
-      .select("*")
-      .eq("user_id", state.user.id)
-      .order("created_at", { ascending: false });
+    if (resetReports) {
+      state.pagination.profileReportsOffset = 0;
+      state.pagination.profileReportsHasMore = true;
+      el.myReportsList.innerHTML = "<p>Bejelentések betöltése...</p>";
+    }
+    if (state.pagination.profileReportsHasMore || resetReports) {
+      const from = state.pagination.profileReportsOffset;
+      const to = from + PROFILE_REPORT_PAGE_SIZE - 1;
+      const { data: myReports, error: myReportsError } = await supabaseClient
+        .from("bejelentesek")
+        .select("*")
+        .eq("user_id", state.user.id)
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
-    if (myReportsError) {
-      el.myReportsList.innerHTML = "<p>A saját bejelentések betöltése sikertelen.</p>";
-    } else {
-      const normalizedMyReports = (myReports || []).map(normalizeReport);
-      el.myReportsList.innerHTML = normalizedMyReports.map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("") || "<p>Nincs saját bejelentés.</p>";
+      if (myReportsError) {
+        el.myReportsList.innerHTML = "<p>A saját bejelentések betöltése sikertelen.</p>";
+      } else {
+        const normalizedMyReports = (myReports || []).map(normalizeReport);
+        const cardHtml = normalizedMyReports.map(reportCardHtml).map((h) => `<div class="report-card">${h}</div>`).join("");
+        if (resetReports) {
+          el.myReportsList.innerHTML = cardHtml || "<p>Nincs saját bejelentés.</p>";
+        } else {
+          el.myReportsList.insertAdjacentHTML("beforeend", cardHtml);
+        }
+        state.pagination.profileReportsOffset += normalizedMyReports.length;
+        state.pagination.profileReportsHasMore = normalizedMyReports.length === PROFILE_REPORT_PAGE_SIZE;
+      }
     }
   }
 
   if (shouldLoadMessages) {
-    el.messageList.innerHTML = "<p>Üzenetek betöltése...</p>";
-    const { data: messages, error: messagesError } = await supabaseClient
-      .from("uzenetek")
-      .select("*")
-      .or(`from_user_id.eq.${state.user.id},to_user_id.eq.${state.user.id}`)
-      .order("created_at", { ascending: false });
+    if (resetMessages) {
+      state.pagination.messagesOffset = 0;
+      state.pagination.messagesHasMore = true;
+      el.messageList.innerHTML = "<p>Üzenetek betöltése...</p>";
+    }
+    if (state.pagination.messagesHasMore || resetMessages) {
+      const from = state.pagination.messagesOffset;
+      const to = from + MESSAGE_PAGE_SIZE - 1;
+      const { data: messages, error: messagesError } = await supabaseClient
+        .from("uzenetek")
+        .select("*")
+        .or(`from_user_id.eq.${state.user.id},to_user_id.eq.${state.user.id}`)
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
-    if (messagesError) {
-      el.messageList.innerHTML = "<p>Az üzenetek betöltése sikertelen.</p>";
-    } else {
-      el.messageList.innerHTML = renderMessageRows(messages || []);
+      if (messagesError) {
+        el.messageList.innerHTML = "<p>Az üzenetek betöltése sikertelen.</p>";
+      } else {
+        const rendered = renderMessageRows(messages || []);
+        if (resetMessages) {
+          el.messageList.innerHTML = rendered;
+        } else {
+          const listRoot = el.messageList.querySelector(".message-list");
+          const nextRoot = document.createElement("div");
+          nextRoot.innerHTML = rendered;
+          nextRoot.querySelectorAll(".message-row").forEach((row) => {
+            listRoot?.appendChild(row);
+          });
+        }
+        state.pagination.messagesOffset += (messages || []).length;
+        state.pagination.messagesHasMore = (messages || []).length === MESSAGE_PAGE_SIZE;
+      }
     }
   }
 
@@ -1501,6 +1616,7 @@ async function refreshProfileData(options = {}) {
       row.classList.toggle("is-expanded");
     });
   });
+  updateLoadMoreButtons();
 }
 
 async function fetchCurrentUserProfile() {
@@ -2220,6 +2336,18 @@ function bindMenu() {
   el.reportDrawerBackdrop?.addEventListener("click", () => {
     setReportDrawerOpen(false);
   });
+
+  el.loadMoreReportsBtn?.addEventListener("click", () => loadReports({ reset: false }));
+  el.loadMoreMyReportsBtn?.addEventListener("click", () => refreshProfileData({
+    loadReports: true,
+    loadMessages: false,
+    resetReports: false,
+  }));
+  el.loadMoreMessagesBtn?.addEventListener("click", () => refreshProfileData({
+    loadReports: false,
+    loadMessages: true,
+    resetMessages: false,
+  }));
 }
 
 async function init() {
