@@ -31,3 +31,20 @@
   - `window.error`
   - `window.unhandledrejection`
 - Az endpointok env-specifikusan, build időben kerülnek behelyettesítésre.
+
+## Abuse-védelem és moderáció
+- Új bejelentések alapértelmezett státusza: `review`, ezért nyilvánosan csak admin jóváhagyás után (`aktiv`) jelennek meg.
+- SQL oldali rate limit védelem:
+  - bejelentések: max 5 / óra és 20 / nap / user
+  - üzenetek: max 60 / óra / user
+  - abuse reportok: max 20 / óra / user
+- Bejelentés részletező modalban már valódi `abuse_reports` rekord jön létre (nem csak placeholder alert).
+- Frontend oldalon extra bot-fék:
+  - kötelező “Nem vagyok robot” checkbox mentésnél
+  - lokális cooldown (bejelentés és üzenet küldés között)
+
+### Képek moderációja (javasolt pipeline)
+1. Feltöltés után a rekord `review` státuszban maradjon.
+2. Opcionális háttér worker vizsgálja a képet (NSFW/violence/illicit tartalom).
+3. Pozitív moderáció után admin workflow automatikusan `aktiv` státuszra állíthat.
+4. Elutasított tartalomnál `rejected` státusz + audit trail.
