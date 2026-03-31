@@ -170,7 +170,6 @@ const MAX_UPLOAD_IMAGES = 3;
 const REPORT_PAGE_SIZE = 60;
 const PROFILE_REPORT_PAGE_SIZE = 20;
 const MESSAGE_PAGE_SIZE = 20;
-const REPORT_RECENT_DAYS = 120;
 const REPORT_LIST_CACHE_KEY = "hovalett.reportListCache.v1";
 const CLIENT_REPORT_COOLDOWN_MS = 60 * 1000;
 const CLIENT_MESSAGE_COOLDOWN_MS = 10 * 1000;
@@ -309,7 +308,7 @@ const markerByReportId = new Map();
 
 function getRecentReportCutoffIso() {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - REPORT_RECENT_DAYS);
+  cutoff.setFullYear(cutoff.getFullYear() - 100);
   return cutoff.toISOString();
 }
 
