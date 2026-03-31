@@ -1,0 +1,49 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'staging' && 'stage' || 'dev' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare dist folder
+        run: |
+          mkdir -p dist
+          cp index.html style.css script.js app-config.js favicon.ico bus-green.png bus-red.png dist/
+
+      - name: Inject environment configuration
+        env:
+          APP_ENV: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'staging' && 'stage' || 'dev' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          MONITORING_ENDPOINT: ${{ secrets.MONITORING_ENDPOINT }}
+          ERROR_TRACKING_ENDPOINT: ${{ secrets.ERROR_TRACKING_ENDPOINT }}
+        run: |
+          for file in dist/index.html dist/app-config.js; do
+            sed -i "s|__APP_ENV__|${APP_ENV}|g" "$file"
+            sed -i "s|__SUPABASE_URL__|${SUPABASE_URL}|g" "$file"
+            sed -i "s|__SUPABASE_PUBLISHABLE_KEY__|${SUPABASE_PUBLISHABLE_KEY}|g" "$file"
+            sed -i "s|__MONITORING_ENDPOINT__|${MONITORING_ENDPOINT}|g" "$file"
+            sed -i "s|__ERROR_TRACKING_ENDPOINT__|${ERROR_TRACKING_ENDPOINT}|g" "$file"
+          done
+
+      - name: Validate placeholders are replaced
+        run: |
+          ! rg '__[A-Z_]+__' dist/index.html dist/app-config.js
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hovalett-dist-${{ github.ref_name }}
+          path: dist

@@ -1,0 +1,23 @@
+{
+  "dev": {
+    "APP_ENV": "dev",
+    "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "YOUR_DEV_ANON_KEY",
+    "MONITORING_ENDPOINT": "https://monitoring-dev.example.com/ingest",
+    "ERROR_TRACKING_ENDPOINT": "https://errors-dev.example.com/ingest"
+  },
+  "stage": {
+    "APP_ENV": "stage",
+    "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "YOUR_STAGE_ANON_KEY",
+    "MONITORING_ENDPOINT": "https://monitoring-stage.example.com/ingest",
+    "ERROR_TRACKING_ENDPOINT": "https://errors-stage.example.com/ingest"
+  },
+  "prod": {
+    "APP_ENV": "prod",
+    "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "YOUR_PROD_ANON_KEY",
+    "MONITORING_ENDPOINT": "https://monitoring.example.com/ingest",
+    "ERROR_TRACKING_ENDPOINT": "https://errors.example.com/ingest"
+  }
+}

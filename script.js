@@ -6,8 +6,69 @@ function readBuildConfigValue(key) {
   return trimmed;
 }
 
+const APP_ENV = readBuildConfigValue("APP_ENV") || "dev";
 const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
 const SUPABASE_ANON_KEY = readBuildConfigValue("SUPABASE_ANON_KEY");
+const MONITORING_ENDPOINT = readBuildConfigValue("MONITORING_ENDPOINT");
+const ERROR_TRACKING_ENDPOINT = readBuildConfigValue("ERROR_TRACKING_ENDPOINT");
+
+
+function sendTelemetry(endpoint, eventType, payload) {
+  if (!endpoint) return;
+
+  const body = JSON.stringify({
+    eventType,
+    appEnv: APP_ENV,
+    occurredAt: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    path: window.location.pathname,
+    payload,
+  });
+
+  if (navigator.sendBeacon) {
+    const blob = new Blob([body], { type: "application/json" });
+    navigator.sendBeacon(endpoint, blob);
+    return;
+  }
+
+  fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => {
+    // Telemetria hiba nem blokkolhatja a felület működését.
+  });
+}
+
+function initializeMonitoring() {
+  window.addEventListener("error", (event) => {
+    sendTelemetry(ERROR_TRACKING_ENDPOINT, "window.error", {
+      message: event.message,
+      source: event.filename,
+      line: event.lineno,
+      column: event.colno,
+    });
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason;
+    sendTelemetry(ERROR_TRACKING_ENDPOINT, "window.unhandledrejection", {
+      reason: typeof reason === "string" ? reason : reason?.message || "Unknown rejection",
+    });
+  });
+
+  window.addEventListener("load", () => {
+    const nav = performance.getEntriesByType("navigation")[0];
+    sendTelemetry(MONITORING_ENDPOINT, "navigation.timing", {
+      domCompleteMs: Math.round(nav?.domComplete || 0),
+      loadEventEndMs: Math.round(nav?.loadEventEnd || 0),
+      type: nav?.type || "unknown",
+    });
+  });
+}
+
+initializeMonitoring();
 
 function isSupabaseConfigUsable(url, key) {
   try {
@@ -91,7 +152,7 @@ const defaultMarkerIconConfig = {
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  shadowUrl: "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png",
   shadowSize: [41, 41],
 };
 
