@@ -1,5 +1,13 @@
-const SUPABASE_URL = "https://eishxohixndoiltazdzu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT";
+function readBuildConfigValue(key) {
+  const value = window.__HOVALETT_CONFIG__?.[key];
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith("__") || trimmed.endsWith("__")) return "";
+  return trimmed;
+}
+
+const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
+const SUPABASE_ANON_KEY = readBuildConfigValue("SUPABASE_ANON_KEY");
 
 function isSupabaseConfigUsable(url, key) {
   try {
