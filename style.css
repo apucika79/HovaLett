@@ -339,6 +339,13 @@ button {
   background-color: #455a64;
 }
 
+.load-more-btn {
+  margin-top: 10px;
+  width: 100%;
+  background: #0ea5e9;
+  font-size: 13px;
+}
+
 
 .leaflet-marker-icon.is-pulsing-marker {
   animation: marker-pulse 0.9s ease-in-out infinite;
