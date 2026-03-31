@@ -73,7 +73,9 @@ initializeMonitoring();
 function isSupabaseConfigUsable(url, key) {
   try {
     const u = new URL(url);
-    if (!u.hostname.endsWith(".supabase.co")) return false;
+    if (!["https:", "http:"].includes(u.protocol)) return false;
+    const isSupabaseHost = u.hostname.includes("supabase.");
+    if (!isSupabaseHost) return false;
     return Boolean(key && key.length > 20);
   } catch {
     return false;
@@ -1550,7 +1552,12 @@ function renderMapMarkers() {
 
 async function checkSupabaseConnection() {
   if (!supabaseClient) {
-    setInfo("Supabase kliens nem inicializálható (URL vagy kulcs hibás).");
+    const hasSupabaseRuntime = Boolean(window.supabase?.createClient);
+    if (!hasSupabaseRuntime) {
+      setInfo("Supabase kliens nem tölthető be (CDN script hiba vagy blokkolás).");
+      return false;
+    }
+    setInfo("Supabase kliens nem inicializálható (URL vagy kulcs hibás/hiányzik).");
     return false;
   }
 
