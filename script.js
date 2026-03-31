@@ -172,6 +172,10 @@ const PROFILE_REPORT_PAGE_SIZE = 20;
 const MESSAGE_PAGE_SIZE = 20;
 const REPORT_RECENT_DAYS = 120;
 const REPORT_LIST_CACHE_KEY = "hovalett.reportListCache.v1";
+const CLIENT_REPORT_COOLDOWN_MS = 60 * 1000;
+const CLIENT_MESSAGE_COOLDOWN_MS = 10 * 1000;
+const REPORT_COOLDOWN_KEY = "hovalett.lastReportAt";
+const MESSAGE_COOLDOWN_KEY = "hovalett.lastMessageAt";
 
 const MAP_MAX_ZOOM = 22;
 const MAP_NATIVE_TILE_MAX_ZOOM = 19;
@@ -238,6 +242,7 @@ const el = {
   descriptionInput: document.getElementById("descriptionInput"),
   photoInput: document.getElementById("photoInput"),
   photoInputHelp: document.getElementById("photoInputHelp"),
+  humanCheckInput: document.getElementById("humanCheckInput"),
   routeInput: document.getElementById("routeInput"),
   routeBox: document.getElementById("járatBox"),
   valasztoModal: document.getElementById("valasztoModal"),
@@ -314,6 +319,20 @@ function cacheReportList(reports = []) {
   } catch {
     // opcionális cache: ha nem írható, működünk nélküle
   }
+}
+
+function getCooldownRemainingMs(storageKey, cooldownMs) {
+  const lastTs = Number(localStorage.getItem(storageKey) || 0);
+  if (!Number.isFinite(lastTs) || lastTs <= 0) return 0;
+  return Math.max(0, lastTs + cooldownMs - Date.now());
+}
+
+function setCooldownNow(storageKey) {
+  localStorage.setItem(storageKey, String(Date.now()));
+}
+
+function formatRemainingSeconds(ms) {
+  return Math.max(1, Math.ceil(ms / 1000));
 }
 
 function loadCachedReportList() {
@@ -433,6 +452,7 @@ function resetReportFlow() {
   el.routeInput.value = "";
   el.descriptionInput.value = "";
   el.photoInput.value = "";
+  if (el.humanCheckInput) el.humanCheckInput.checked = false;
   state.selectedUploadFiles = [];
   el.photoInputHelp.textContent = `Maximum ${MAX_UPLOAD_IMAGES} képet tölthetsz fel.`;
   el.routeBox.classList.add("hidden");
@@ -1314,6 +1334,29 @@ function closeReportDetailModal() {
   el.reportDetailBody.innerHTML = "";
 }
 
+async function submitAbuseReport(report, reason = "spam_vagy_atveres") {
+  if (!supabaseClient) return alert("Supabase nincs beállítva.");
+  if (!state.user) return alert("A jelentés küldéséhez bejelentkezés szükséges.");
+  if (!report?.id) return;
+
+  const note = window.prompt("Rövid indoklás (opcionális):", "");
+  const { error } = await supabaseClient
+    .from("abuse_reports")
+    .insert([{
+      report_id: Number(report.id),
+      reporter_user_id: state.user.id,
+      reason,
+      note: (note || "").trim().slice(0, 500) || null,
+    }]);
+
+  if (error) {
+    alert(`A jelentés mentése sikertelen: ${error.message}`);
+    return;
+  }
+
+  alert("Köszönjük, a jelentést továbbítottuk moderálásra.");
+}
+
 function handleShowOnMap(event, reportId) {
   event?.preventDefault();
   event?.stopPropagation();
@@ -1389,9 +1432,10 @@ function openReportDetailModal(report) {
 
   const reportIssueBtn = el.reportDetailBody.querySelector(`[data-report-issue="${report.id}"]`);
   if (reportIssueBtn) {
-    reportIssueBtn.addEventListener("click", () => {
-      const accepted = window.confirm("Szeretnéd jelenteni ezt a bejelentést? A funkció véglegesítése folyamatban van.");
-      if (accepted) alert("Köszönjük, a jelentésedet rögzítettük. Hamarosan véglegesítjük a teljes folyamatot.");
+    reportIssueBtn.addEventListener("click", async () => {
+      const accepted = window.confirm("Szeretnéd jelenteni ezt a bejelentést moderációra?");
+      if (!accepted) return;
+      await submitAbuseReport(report);
     });
   }
 
@@ -1884,6 +1928,10 @@ async function saveReport() {
   if (!supabaseClient) return alert("Supabase nincs beállítva.");
   if (!state.supabaseOnline) return alert("A Supabase kapcsolat nem működik, így az éles bejelentés most nem menthető.");
   if (!state.user) return alert("Bejelentkezés szükséges.");
+  const reportCooldownRemaining = getCooldownRemainingMs(REPORT_COOLDOWN_KEY, CLIENT_REPORT_COOLDOWN_MS);
+  if (reportCooldownRemaining > 0) {
+    return alert(`Kérlek várj még ${formatRemainingSeconds(reportCooldownRemaining)} másodpercet az újabb bejelentés előtt.`);
+  }
 
   const validationErrors = [];
 
@@ -1903,6 +1951,9 @@ async function saveReport() {
   const description = el.descriptionInput.value.trim();
   if (description.length > MAX_DESCRIPTION_LENGTH) {
     validationErrors.push(`A leírás legfeljebb ${MAX_DESCRIPTION_LENGTH} karakter lehet.`);
+  }
+  if (!el.humanCheckInput?.checked) {
+    validationErrors.push("Jelöld be, hogy nem vagy robot.");
   }
 
   if (validationErrors.length) {
@@ -1928,7 +1979,7 @@ async function saveReport() {
     lng: savedCoords.lng,
     created_at: (state.reportDateTime || new Date()).toISOString(),
     image_url: imageUrls.length ? JSON.stringify(imageUrls) : null,
-    status: "aktiv",
+    status: "review",
   };
 
   try {
@@ -1939,9 +1990,10 @@ async function saveReport() {
   }
 
   resetReportFlow();
+  setCooldownNow(REPORT_COOLDOWN_KEY);
   await loadReports();
   await refreshProfileData();
-  alert("Bejelentés mentve.");
+  alert("Bejelentés mentve. Nyilvánosan moderáció után jelenik meg.");
 }
 
 function renderAuthModal(mode = "choice") {
@@ -2124,6 +2176,11 @@ async function sendMessageFromModal() {
   if (!supabaseClient) return;
   const body = el.messageBody.value.trim();
   if (!body || !state.currentReportForMessage || !state.user) return;
+  const messageCooldownRemaining = getCooldownRemainingMs(MESSAGE_COOLDOWN_KEY, CLIENT_MESSAGE_COOLDOWN_MS);
+  if (messageCooldownRemaining > 0) {
+    alert(`Túl gyors üzenetküldés. Várj még ${formatRemainingSeconds(messageCooldownRemaining)} másodpercet.`);
+    return;
+  }
 
   const targetUser = String(state.currentReportForMessage.user_id);
   const { error } = await supabaseClient.from("uzenetek").insert([{
@@ -2134,6 +2191,7 @@ async function sendMessageFromModal() {
   }]);
   if (error) return alert("Üzenet mentési hiba.");
 
+  setCooldownNow(MESSAGE_COOLDOWN_KEY);
   el.messageModal.classList.add("hidden");
   await refreshProfileData();
 }

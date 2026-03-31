@@ -652,6 +652,18 @@ button {
   margin-bottom: 6px;
 }
 
+#markerForm .captcha-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+#markerForm .captcha-check input {
+  width: auto;
+  margin: 0;
+}
+
 #markerForm .modal-close-btn {
   top: 12px;
   right: 12px;
