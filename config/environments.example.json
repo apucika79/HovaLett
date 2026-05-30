@@ -1,7 +1,8 @@
 {
   "dev": {
     "APP_ENV": "dev",
-    "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+    "SUPABASE_PROJECT_REF": "YOUR_DEV_PROJECT_REF",
+    "SUPABASE_URL": "https://YOUR_DEV_PROJECT_REF.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "YOUR_DEV_PUBLISHABLE_KEY",
     "MONITORING_ENDPOINT": "https://monitoring-dev.example.com/ingest",
     "ERROR_TRACKING_ENDPOINT": "https://errors-dev.example.com/ingest",
@@ -9,7 +10,8 @@
   },
   "stage": {
     "APP_ENV": "stage",
-    "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+    "SUPABASE_PROJECT_REF": "YOUR_STAGE_PROJECT_REF",
+    "SUPABASE_URL": "https://YOUR_STAGE_PROJECT_REF.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "YOUR_STAGE_PUBLISHABLE_KEY",
     "MONITORING_ENDPOINT": "https://monitoring-stage.example.com/ingest",
     "ERROR_TRACKING_ENDPOINT": "https://errors-stage.example.com/ingest",
@@ -17,7 +19,8 @@
   },
   "prod": {
     "APP_ENV": "prod",
-    "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+    "SUPABASE_PROJECT_REF": "YOUR_PROD_PROJECT_REF",
+    "SUPABASE_URL": "https://YOUR_PROD_PROJECT_REF.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "YOUR_PROD_PUBLISHABLE_KEY",
     "MONITORING_ENDPOINT": "https://monitoring.example.com/ingest",
     "ERROR_TRACKING_ENDPOINT": "https://errors.example.com/ingest",

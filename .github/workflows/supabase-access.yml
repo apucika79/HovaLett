@@ -1,0 +1,71 @@
+name: Supabase access check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/supabase-access.yml"
+      - "scripts/prepare-supabase-env.sh"
+      - "docs/OPERATIONS.md"
+      - "config/environments.example.json"
+      - "supabase_schema.sql"
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+    paths:
+      - ".github/workflows/supabase-access.yml"
+      - "scripts/prepare-supabase-env.sh"
+      - "docs/OPERATIONS.md"
+      - "config/environments.example.json"
+      - "supabase_schema.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-validation:
+    name: Static infrastructure validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Supabase helper script syntax
+        run: bash -n scripts/prepare-supabase-env.sh
+
+  supabase-access:
+    name: Verify Supabase project access
+    runs-on: ubuntu-latest
+    needs: static-validation
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      - name: Verify CLI installation
+        run: supabase --version
+
+      - name: Resolve and verify Supabase project configuration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: scripts/prepare-supabase-env.sh --github-env
+
+      - name: Verify project is listed for the token
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase projects list --output json \
+            | python3 -c 'import json, os, sys; data=json.load(sys.stdin); ref=os.environ["SUPABASE_PROJECT_REF"]; sys.exit(0 if any(p.get("id") == ref or p.get("ref") == ref for p in data) else 1)'
