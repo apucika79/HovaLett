@@ -192,6 +192,9 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
   ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
         storage: {
           getItem(key) {
             const sessionValue = sessionStorage.getItem(key);
@@ -230,6 +233,24 @@ const enabledSocialProviders = [
   { id: "facebook", label: "Facebook" },
   { id: "google", label: "Google" },
 ];
+
+const socialProviderOptions = {
+  facebook: { scopes: "email,public_profile" },
+  google: { scopes: "email profile" },
+};
+
+function getAuthRedirectUrl() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function getUserDisplayName(user) {
+  if (!user) return "";
+  return user.email
+    || user.user_metadata?.email
+    || user.user_metadata?.full_name
+    || user.user_metadata?.name
+    || "közösségi fiók";
+}
 
 const el = {
   foundBtn: document.getElementById("foundBtn"),
@@ -2095,12 +2116,18 @@ function renderAuthModal(mode = "choice") {
       button.addEventListener("click", async () => {
         if (!supabaseClient) return alert("Supabase nincs beállítva.");
         const provider = button.dataset.provider;
+        const providerOptions = socialProviderOptions[provider] || {};
+        button.disabled = true;
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider,
-          options: { redirectTo: window.location.href },
+          options: {
+            redirectTo: getAuthRedirectUrl(),
+            scopes: providerOptions.scopes,
+          },
         });
+        button.disabled = false;
         if (error) {
-          alert(error.message);
+          alert(`Sikertelen ${button.textContent} bejelentkezés: ${error.message}`);
         }
       });
     });
@@ -2205,7 +2232,7 @@ async function hydrateAuth() {
   await fetchCurrentUserProfile();
 
   if (state.user) {
-    el.loggedUser.textContent = `Bejelentkezve: ${state.user.email}`;
+    el.loggedUser.textContent = `Bejelentkezve: ${getUserDisplayName(state.user)}`;
     el.loggedUser.classList.remove("hidden");
     el.loginBtn.classList.add("hidden");
     el.logoutBtn.classList.remove("hidden");
@@ -2475,6 +2502,21 @@ function initializeDatePicker() {
   };
 }
 
+function bindAuthStateChanges() {
+  if (!supabaseClient) return;
+
+  supabaseClient.auth.onAuthStateChange((event) => {
+    if (!["SIGNED_IN", "SIGNED_OUT", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) return;
+
+    window.setTimeout(async () => {
+      await hydrateAuth();
+      if (state.supabaseOnline) {
+        await loadReports();
+      }
+    }, 0);
+  });
+}
+
 function bindMenu() {
   el.loginBtn.addEventListener("click", () => {
     renderAuthModal("social-login");
@@ -2544,6 +2586,7 @@ async function init() {
   clearSupabaseLocalSessionsIfNeeded();
   state.readMessageIds = loadReadMessageIds();
   bindMenu();
+  bindAuthStateChanges();
   initFilters();
   initReportFlow();
   setupImageViewerEvents();
