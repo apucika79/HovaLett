@@ -637,6 +637,10 @@ function isReportVisible(report) {
   return state.activeTypes.has(report.tipus) && state.activeCategories.has(normalizeCategory(report.kategoria));
 }
 
+function getReportDisplayDate(report) {
+  return new Date(report.event_at || report.created_at).toLocaleString("hu-HU");
+}
+
 function toMinutePrecisionTimestamp(value) {
   const date = new Date(value);
   const timestamp = date.getTime();
@@ -1072,7 +1076,7 @@ function reportCardHtml(report, options = {}) {
   return `
     <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${reportTypeLabel}</strong> – ${reportCategory}<br>
     <strong>Azonosító:</strong> ${reportCode}<br>
-    <small>${new Date(report.created_at).toLocaleString("hu-HU")}</small><br>
+    <small>${getReportDisplayDate(report)}</small><br>
     <strong>Cím:</strong> ${reportTitle}<br>
     ${descriptionRow}
     <div class="report-card-actions">${detailButton}${manageButton}${mapButton}</div>
@@ -1302,7 +1306,7 @@ function reportDetailHtml(report) {
   const reportCode = escapeHtml(report.report_code || "-");
   const reportTitle = escapeHtml(report.cim || "-");
   const reportDescription = escapeHtml(report.leiras || "-");
-  const createdAt = new Date(report.created_at).toLocaleString("hu-HU");
+  const displayDate = getReportDisplayDate(report);
   const imageRibbon = imageUrls.length > 0
     ? `<div class="popup-image-ribbon">${imageUrls.map((url, index) => `<button class="popup-thumb-btn" data-popup-image-report="${report.id}" data-image-index="${index}" type="button"><img src="${url}" alt="Bejelentés kép ${index + 1}"></button>`).join("")}</div>`
     : '<p class="popup-no-image">Ehhez a bejelentéshez nincs feltöltött kép.</p>';
@@ -1319,7 +1323,7 @@ function reportDetailHtml(report) {
         <div class="report-detail-fields">
           <strong style="color:${report.tipus === "talalt" ? "green" : "#c62828"}">${reportTypeLabel}</strong> – ${reportCategory}<br>
           <strong>Azonosító:</strong> ${reportCode}<br>
-          <small>${createdAt}</small><br>
+          <small>${displayDate}</small><br>
           <strong>Cím:</strong> ${reportTitle}<br>
           <strong>Leírás:</strong> ${reportDescription}
         </div>
@@ -1983,7 +1987,7 @@ async function saveReport() {
     leiras: description.slice(0, MAX_DESCRIPTION_LENGTH),
     lat: savedCoords.lat,
     lng: savedCoords.lng,
-    created_at: (state.reportDateTime || new Date()).toISOString(),
+    event_at: (state.reportDateTime || new Date()).toISOString(),
     image_url: imageUrls.length ? JSON.stringify(imageUrls) : null,
     status: "review",
   };

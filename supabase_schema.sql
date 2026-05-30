@@ -17,6 +17,7 @@ create table if not exists public.bejelentesek (
   leiras text,
   lat double precision not null,
   lng double precision not null,
+  event_at timestamptz,
   created_at timestamptz not null default now(),
   image_url text,
   status text not null default 'review'
@@ -34,6 +35,9 @@ alter table public.bejelentesek
 
 alter table public.bejelentesek
   add column if not exists report_code text;
+
+alter table public.bejelentesek
+  add column if not exists event_at timestamptz;
 
 create unique index if not exists bejelentesek_report_code_key
   on public.bejelentesek (report_code)
