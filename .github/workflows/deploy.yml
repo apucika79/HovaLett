@@ -17,6 +17,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve Supabase configuration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: scripts/prepare-supabase-env.sh --github-env
+
       - name: Prepare dist folder
         run: |
           mkdir -p dist
@@ -25,8 +33,6 @@ jobs:
       - name: Inject environment configuration
         env:
           APP_ENV: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'staging' && 'stage' || 'dev' }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           MONITORING_ENDPOINT: ${{ secrets.MONITORING_ENDPOINT }}
           ERROR_TRACKING_ENDPOINT: ${{ secrets.ERROR_TRACKING_ENDPOINT }}
           AUTH_SOCIAL_PROVIDERS: ${{ vars.AUTH_SOCIAL_PROVIDERS || secrets.AUTH_SOCIAL_PROVIDERS || 'google' }}
