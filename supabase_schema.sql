@@ -426,4 +426,7 @@ drop policy if exists "storage_auth_upload_report_images" on storage.objects;
 create policy "storage_auth_upload_report_images"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'report-images');
+  with check (
+    bucket_id = 'report-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
