@@ -1742,6 +1742,28 @@ async function refreshProfileData(options = {}) {
   updateLoadMoreButtons();
 }
 
+async function loadOwnReportsIntoState() {
+  if (!supabaseClient || !state.supabaseOnline || !state.user) return;
+
+  const { data, error } = await supabaseClient
+    .from("bejelentesek")
+    .select("*")
+    .eq("user_id", state.user.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    setInfo(`Saját bejelentések betöltése sikertelen: ${error.message}`);
+    return;
+  }
+
+  const reportsById = new Map(state.reports.map((report) => [Number(report.id), report]));
+  (data || []).map(normalizeReport).forEach((report) => {
+    reportsById.set(Number(report.id), report);
+  });
+  state.reports = sortReportsByNewestMinute([...reportsById.values()]);
+}
+
 async function fetchCurrentUserProfile() {
   if (!supabaseClient || !state.user) {
     state.profile = null;
@@ -1823,7 +1845,7 @@ function showAdminPanel() {
   renderAdminDashboard();
 }
 
-function showMyReports() {
+async function showMyReports() {
   if (!state.user) {
     renderAuthModal("social-login");
     el.modal.classList.remove("hidden");
@@ -1840,6 +1862,7 @@ function showMyReports() {
   el.mainContainer.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
   updateMenuViewState();
+  await loadOwnReportsIntoState();
   updateVisibleItems();
   renderMapMarkers();
   refreshMapLayout();
@@ -1847,8 +1870,10 @@ function showMyReports() {
 
 async function uploadImageIfAny(file) {
   if (!file || !state.supabaseOnline) return null;
-  const ext = file.name.split(".").pop();
-  const path = `${state.user.id}/${Date.now()}.${ext}`;
+  const rawExt = file.name.split(".").pop() || "jpg";
+  const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const uniqueName = `${Date.now()}-${window.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}`;
+  const path = `${state.user.id}/${uniqueName}.${ext}`;
   const { error } = await supabaseClient.storage.from("report-images").upload(path, file, { upsert: false });
   if (error) {
     const msg = String(error.message || "").toLowerCase();
