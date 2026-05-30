@@ -7,6 +7,7 @@
     SUPABASE_PUBLISHABLE_KEY: "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT",
     MONITORING_ENDPOINT: "",
     ERROR_TRACKING_ENDPOINT: "",
+    AUTH_SOCIAL_PROVIDERS: "google",
   };
 
   function buildValue(value, fallback) {
@@ -22,5 +23,6 @@
     SUPABASE_PUBLISHABLE_KEY: buildValue("__SUPABASE_PUBLISHABLE_KEY__", fallbackConfig.SUPABASE_PUBLISHABLE_KEY),
     MONITORING_ENDPOINT: buildValue("__MONITORING_ENDPOINT__", fallbackConfig.MONITORING_ENDPOINT),
     ERROR_TRACKING_ENDPOINT: buildValue("__ERROR_TRACKING_ENDPOINT__", fallbackConfig.ERROR_TRACKING_ENDPOINT),
+    AUTH_SOCIAL_PROVIDERS: buildValue("__AUTH_SOCIAL_PROVIDERS__", fallbackConfig.AUTH_SOCIAL_PROVIDERS),
   };
 })();
