@@ -19,7 +19,7 @@ create table if not exists public.bejelentesek (
   lng double precision not null,
   created_at timestamptz not null default now(),
   image_url text,
-  status text not null default 'aktiv'
+  status text not null default 'review'
 );
 
 alter table public.bejelentesek
@@ -28,6 +28,9 @@ alter table public.bejelentesek
 alter table public.bejelentesek
   add constraint bejelentesek_status_check
   check (status in ('aktiv', 'review', 'lezart', 'rejected'));
+
+alter table public.bejelentesek
+  alter column status set default 'review';
 
 alter table public.bejelentesek
   add column if not exists report_code text;
@@ -135,6 +138,42 @@ alter table public.bejelentesek enable row level security;
 alter table public.uzenetek enable row level security;
 alter table public.profiles enable row level security;
 alter table public.abuse_reports enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid() and p.role = 'admin'
+  );
+$$;
+
+create or replace function public.enforce_bejelentesek_status_rules()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if TG_OP = 'UPDATE'
+    and new.status is distinct from old.status
+    and not public.is_admin() then
+    raise exception 'Csak admin módosíthatja a bejelentés státuszát.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_enforce_bejelentesek_status_rules on public.bejelentesek;
+create trigger trg_enforce_bejelentesek_status_rules
+before update on public.bejelentesek
+for each row
+execute function public.enforce_bejelentesek_status_rules();
 
 create or replace function public.enforce_simple_rate_limit()
 returns trigger
@@ -278,7 +317,10 @@ drop policy if exists "bejelentesek_insert_auth" on public.bejelentesek;
 create policy "bejelentesek_insert_auth"
   on public.bejelentesek for insert
   to authenticated
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and (status = 'review' or public.is_admin())
+  );
 
 -- publikus térképen csak az aktív bejelentések láthatók (anon + authenticated)
 drop policy if exists "bejelentesek_select_public" on public.bejelentesek;
