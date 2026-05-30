@@ -146,6 +146,7 @@ alter table public.abuse_reports enable row level security;
 create or replace function public.is_admin()
 returns boolean
 language sql
+stable
 security definer
 set search_path = public
 as $$
@@ -297,32 +298,14 @@ drop policy if exists "profiles_select_admin" on public.profiles;
 create policy "profiles_select_admin"
   on public.profiles for select
   to authenticated
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 drop policy if exists "profiles_update_admin" on public.profiles;
 create policy "profiles_update_admin"
   on public.profiles for update
   to authenticated
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- csak bejelentkezett user hozhat létre adatot
 drop policy if exists "bejelentesek_insert_auth" on public.bejelentesek;
@@ -353,13 +336,7 @@ drop policy if exists "bejelentesek_select_admin" on public.bejelentesek;
 create policy "bejelentesek_select_admin"
   on public.bejelentesek for select
   to authenticated
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 -- saját bejelentést módosíthatja
 drop policy if exists "bejelentesek_update_own" on public.bejelentesek;
@@ -373,20 +350,8 @@ drop policy if exists "bejelentesek_update_admin" on public.bejelentesek;
 create policy "bejelentesek_update_admin"
   on public.bejelentesek for update
   to authenticated
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- saját bejelentést törölheti
 drop policy if exists "bejelentesek_delete_own" on public.bejelentesek;
@@ -439,29 +404,14 @@ drop policy if exists "abuse_reports_select_admin" on public.abuse_reports;
 create policy "abuse_reports_select_admin"
   on public.abuse_reports for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 drop policy if exists "abuse_reports_update_admin" on public.abuse_reports;
 create policy "abuse_reports_update_admin"
   on public.abuse_reports for update
   to authenticated
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
 
 insert into storage.buckets (id, name, public)
 values ('report-images', 'report-images', true)
