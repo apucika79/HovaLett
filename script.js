@@ -1565,7 +1565,12 @@ async function checkSupabaseConnection() {
     return false;
   }
 
-  const { error } = await supabaseClient.from("bejelentesek").select("id", { count: "exact", head: true });
+  const { error } = await supabaseClient
+    .from("bejelentesek")
+    .select("id")
+    .eq("status", "aktiv")
+    .order("created_at", { ascending: false })
+    .limit(1);
   if (error) {
     const msg = String(error.message || "").toLowerCase();
     if (msg.includes("relation") && msg.includes("does not exist")) {
