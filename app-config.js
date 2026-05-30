@@ -1,9 +1,9 @@
 // Build-time configuration.
 // Replace these placeholders in CI/CD (or during local build) with real values.
 window.__HOVALETT_CONFIG__ = {
-  APP_ENV: "dev",
-  SUPABASE_URL: "https://eishxohixndoiltazdzu.supabase.co",
-  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT",
+  APP_ENV: "__APP_ENV__",
+  SUPABASE_URL: "__SUPABASE_URL__",
+  SUPABASE_PUBLISHABLE_KEY: "__SUPABASE_PUBLISHABLE_KEY__",
   MONITORING_ENDPOINT: "__MONITORING_ENDPOINT__",
   ERROR_TRACKING_ENDPOINT: "__ERROR_TRACKING_ENDPOINT__",
 };
