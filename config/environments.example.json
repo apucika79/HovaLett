@@ -5,7 +5,7 @@
     "SUPABASE_PUBLISHABLE_KEY": "YOUR_DEV_PUBLISHABLE_KEY",
     "MONITORING_ENDPOINT": "https://monitoring-dev.example.com/ingest",
     "ERROR_TRACKING_ENDPOINT": "https://errors-dev.example.com/ingest",
-    "AUTH_SOCIAL_PROVIDERS": "google"
+    "AUTH_SOCIAL_PROVIDERS": "google,facebook"
   },
   "stage": {
     "APP_ENV": "stage",

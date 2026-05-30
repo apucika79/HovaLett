@@ -7,7 +7,7 @@
     SUPABASE_PUBLISHABLE_KEY: "sb_publishable_5FlWmjnmAOU47zsUSwVLrg_5h2Kk9yT",
     MONITORING_ENDPOINT: "",
     ERROR_TRACKING_ENDPOINT: "",
-    AUTH_SOCIAL_PROVIDERS: "google",
+    AUTH_SOCIAL_PROVIDERS: "google,facebook",
   };
 
   function buildValue(value, fallback) {

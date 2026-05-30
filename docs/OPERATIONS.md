@@ -16,13 +16,13 @@
    - `SUPABASE_PUBLISHABLE_KEY`
    - `MONITORING_ENDPOINT`
    - `ERROR_TRACKING_ENDPOINT`
-   - `AUTH_SOCIAL_PROVIDERS` (vesszővel elválasztva, pl. `google` vagy `google,facebook`)
+   - `AUTH_SOCIAL_PROVIDERS` (vesszővel elválasztva, pl. `google,facebook`)
 4. A frontend Supabase kliens elsődlegesen a `SUPABASE_PUBLISHABLE_KEY` értéket olvassa; a régi `SUPABASE_ANON_KEY` név csak visszafelé kompatibilis fallback.
 
 ## Bejelentkezési szolgáltatók
 - Az email/jelszó alapú bejelentkezés továbbra is a Supabase Auth beépített email providerén keresztül működik.
-- A közösségi bejelentkezési gombokat az `AUTH_SOCIAL_PROVIDERS` konfiguráció szabályozza. Csak olyan szolgáltatót vegyél fel (például `google,facebook`), amelyet ugyanabban a Supabase Auth környezetben már engedélyeztél.
-- A Google és Facebook gombok Supabase OAuth bejelentkezést indítanak; a Supabase Dashboardban környezetenként engedélyezni kell a használni kívánt `Google` / `Facebook` providereket, valamint a publikus alkalmazás URL-jét fel kell venni Redirect URL-ként. Ha a Facebook nincs engedélyezve, hagyd ki az `AUTH_SOCIAL_PROVIDERS` listából, különben Supabase `Unsupported provider: provider is not enabled` hibát ad.
+- A közösségi bejelentkezési gombokat az `AUTH_SOCIAL_PROVIDERS` konfiguráció szabályozza; a Facebook gomb felhasználói kérésre akkor is látható marad, ha a lista hiányos, hogy a bejelentkezési opció ne tűnjön el a felületről. A Supabase Auth környezetben engedélyezd a felsorolt szolgáltatókat (javasolt: `google,facebook`).
+- A Google és Facebook gombok Supabase OAuth bejelentkezést indítanak; a Supabase Dashboardban környezetenként engedélyezni kell a használni kívánt `Google` / `Facebook` providereket, valamint a publikus alkalmazás URL-jét fel kell venni Redirect URL-ként. Ha a Facebook nincs engedélyezve, a gomb látszik, de Supabase `Unsupported provider: provider is not enabled` hibát adhat, ezért a Facebook providert ténylegesen is kapcsold be az adott környezetben.
 - A frontend OAuth visszatérési URL-je az aktuális origin + pathname, query/hash nélkül, így ugyanarra a statikus oldalra érkezik vissza a felhasználó.
 
 ## Deployment pipeline
