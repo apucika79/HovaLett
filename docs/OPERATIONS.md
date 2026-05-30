@@ -18,6 +18,11 @@
    - `ERROR_TRACKING_ENDPOINT`
 4. A frontend Supabase kliens elsődlegesen a `SUPABASE_PUBLISHABLE_KEY` értéket olvassa; a régi `SUPABASE_ANON_KEY` név csak visszafelé kompatibilis fallback.
 
+## Bejelentkezési szolgáltatók
+- Az email/jelszó alapú bejelentkezés továbbra is a Supabase Auth beépített email providerén keresztül működik.
+- A Google és Facebook gombok Supabase OAuth bejelentkezést indítanak; a Supabase Dashboardban környezetenként engedélyezni kell a `Google` és `Facebook` providereket, valamint a publikus alkalmazás URL-jét fel kell venni Redirect URL-ként.
+- A frontend OAuth visszatérési URL-je az aktuális origin + pathname, query/hash nélkül, így ugyanarra a statikus oldalra érkezik vissza a felhasználó.
+
 ## Deployment pipeline
 - A workflow a branch alapján választ environmentet:
   - `develop` → `dev`
