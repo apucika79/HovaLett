@@ -11,6 +11,7 @@ const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
 const SUPABASE_PUBLISHABLE_KEY = readBuildConfigValue("SUPABASE_PUBLISHABLE_KEY") || readBuildConfigValue("SUPABASE_ANON_KEY");
 const MONITORING_ENDPOINT = readBuildConfigValue("MONITORING_ENDPOINT");
 const ERROR_TRACKING_ENDPOINT = readBuildConfigValue("ERROR_TRACKING_ENDPOINT");
+const AUTH_SOCIAL_PROVIDERS = readBuildConfigValue("AUTH_SOCIAL_PROVIDERS") || "google";
 
 
 function sendTelemetry(endpoint, eventType, payload) {
@@ -229,10 +230,22 @@ const messagePreferences = {
   readMessageIds: "hovalett.readMessageIds",
 };
 
-const enabledSocialProviders = [
+const availableSocialProviders = [
   { id: "facebook", label: "Facebook" },
   { id: "google", label: "Google" },
 ];
+
+function getEnabledSocialProviders() {
+  const configuredProviderIds = new Set(
+    AUTH_SOCIAL_PROVIDERS.split(",")
+      .map((provider) => provider.trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  return availableSocialProviders.filter((provider) => configuredProviderIds.has(provider.id));
+}
+
+const enabledSocialProviders = getEnabledSocialProviders();
 
 const socialProviderOptions = {
   facebook: { scopes: "email,public_profile" },
@@ -241,6 +254,21 @@ const socialProviderOptions = {
 
 function getAuthRedirectUrl() {
   return `${window.location.origin}${window.location.pathname}`;
+}
+
+function isProviderNotEnabledError(error) {
+  if (!error) return false;
+  const message = String(error.message || "").toLowerCase();
+  const code = String(error.code || error.error_code || "").toLowerCase();
+  return code === "validation_failed" && message.includes("unsupported provider") && message.includes("not enabled");
+}
+
+function getAuthProviderErrorMessage(error, providerLabel) {
+  if (isProviderNotEnabledError(error)) {
+    return `${providerLabel} bejelentkezés jelenleg nincs bekapcsolva ebben a Supabase környezetben. Kérjük, próbáld az email/jelszó vagy egy másik bejelentkezési módot.`;
+  }
+
+  return `Sikertelen ${providerLabel} bejelentkezés: ${error.message}`;
 }
 
 function getUserDisplayName(user) {
@@ -2096,9 +2124,10 @@ function renderAuthModal(mode = "choice") {
       <button class="modal-close-btn" data-auth-close="true" aria-label="Bezárás">✕</button>
       <h3>Bejelentkezés</h3>
       <p>Válassz bejelentkezési módot:</p>
+      ${providerButtonsHtml ? `
       <div class="auth-provider-list">
         ${providerButtonsHtml}
-      </div>
+      </div>` : ""}
       <div class="modal-actions">
         <button id="openEmailLoginBtn" class="modal-primary-btn">Email és jelszó</button>
         <button id="authBackBtn" class="modal-secondary-btn">Vissza</button>
@@ -2127,7 +2156,7 @@ function renderAuthModal(mode = "choice") {
         });
         button.disabled = false;
         if (error) {
-          alert(`Sikertelen ${button.textContent} bejelentkezés: ${error.message}`);
+          alert(getAuthProviderErrorMessage(error, button.textContent));
         }
       });
     });

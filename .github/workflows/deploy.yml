@@ -29,6 +29,7 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           MONITORING_ENDPOINT: ${{ secrets.MONITORING_ENDPOINT }}
           ERROR_TRACKING_ENDPOINT: ${{ secrets.ERROR_TRACKING_ENDPOINT }}
+          AUTH_SOCIAL_PROVIDERS: ${{ vars.AUTH_SOCIAL_PROVIDERS || secrets.AUTH_SOCIAL_PROVIDERS || 'google' }}
         run: |
           for file in dist/index.html dist/app-config.js; do
             sed -i "s|__APP_ENV__|${APP_ENV}|g" "$file"
@@ -36,11 +37,12 @@ jobs:
             sed -i "s|__SUPABASE_PUBLISHABLE_KEY__|${SUPABASE_PUBLISHABLE_KEY}|g" "$file"
             sed -i "s|__MONITORING_ENDPOINT__|${MONITORING_ENDPOINT}|g" "$file"
             sed -i "s|__ERROR_TRACKING_ENDPOINT__|${ERROR_TRACKING_ENDPOINT}|g" "$file"
+            sed -i "s|__AUTH_SOCIAL_PROVIDERS__|${AUTH_SOCIAL_PROVIDERS}|g" "$file"
           done
 
       - name: Validate placeholders are replaced
         run: |
-          ! rg '__[A-Z_]+__' dist/index.html dist/app-config.js
+          ! rg '__(APP_ENV|SUPABASE_URL|SUPABASE_PUBLISHABLE_KEY|MONITORING_ENDPOINT|ERROR_TRACKING_ENDPOINT|AUTH_SOCIAL_PROVIDERS)__' dist/index.html dist/app-config.js
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
