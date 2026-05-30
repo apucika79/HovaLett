@@ -35,7 +35,7 @@ jobs:
           APP_ENV: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'staging' && 'stage' || 'dev' }}
           MONITORING_ENDPOINT: ${{ secrets.MONITORING_ENDPOINT }}
           ERROR_TRACKING_ENDPOINT: ${{ secrets.ERROR_TRACKING_ENDPOINT }}
-          AUTH_SOCIAL_PROVIDERS: ${{ vars.AUTH_SOCIAL_PROVIDERS || secrets.AUTH_SOCIAL_PROVIDERS || 'google' }}
+          AUTH_SOCIAL_PROVIDERS: ${{ vars.AUTH_SOCIAL_PROVIDERS || secrets.AUTH_SOCIAL_PROVIDERS || 'google,facebook' }}
         run: |
           for file in dist/index.html dist/app-config.js; do
             sed -i "s|__APP_ENV__|${APP_ENV}|g" "$file"
