@@ -6,7 +6,7 @@
     "SUPABASE_PUBLISHABLE_KEY": "YOUR_DEV_PUBLISHABLE_KEY",
     "MONITORING_ENDPOINT": "https://monitoring-dev.example.com/ingest",
     "ERROR_TRACKING_ENDPOINT": "https://errors-dev.example.com/ingest",
-    "AUTH_SOCIAL_PROVIDERS": ""
+    "AUTH_SOCIAL_PROVIDERS": "google,facebook"
   },
   "stage": {
     "APP_ENV": "stage",
@@ -15,7 +15,7 @@
     "SUPABASE_PUBLISHABLE_KEY": "YOUR_STAGE_PUBLISHABLE_KEY",
     "MONITORING_ENDPOINT": "https://monitoring-stage.example.com/ingest",
     "ERROR_TRACKING_ENDPOINT": "https://errors-stage.example.com/ingest",
-    "AUTH_SOCIAL_PROVIDERS": ""
+    "AUTH_SOCIAL_PROVIDERS": "google,facebook"
   },
   "prod": {
     "APP_ENV": "prod",
@@ -24,6 +24,6 @@
     "SUPABASE_PUBLISHABLE_KEY": "YOUR_PROD_PUBLISHABLE_KEY",
     "MONITORING_ENDPOINT": "https://monitoring.example.com/ingest",
     "ERROR_TRACKING_ENDPOINT": "https://errors.example.com/ingest",
-    "AUTH_SOCIAL_PROVIDERS": ""
+    "AUTH_SOCIAL_PROVIDERS": "google,facebook"
   }
 }

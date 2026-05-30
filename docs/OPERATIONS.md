@@ -19,13 +19,13 @@
    - `SUPABASE_PUBLISHABLE_KEY` – ha nincs megadva, a pipeline a Supabase Management API-n keresztül próbálja lekérni.
    - `MONITORING_ENDPOINT`
    - `ERROR_TRACKING_ENDPOINT`
-   - `AUTH_SOCIAL_PROVIDERS` (vesszővel elválasztva, pl. `google,facebook`; Release Ready V1 alapértelmezésben üres)
+   - `AUTH_SOCIAL_PROVIDERS` (vesszővel elválasztva, alapértelmezés: `google,facebook`)
 5. A frontend Supabase kliens elsődlegesen a `SUPABASE_PUBLISHABLE_KEY` értéket olvassa; a régi `SUPABASE_ANON_KEY` név csak visszafelé kompatibilis fallback.
 
 ## Bejelentkezési szolgáltatók
 - Az email/jelszó alapú bejelentkezés továbbra is a Supabase Auth beépített email providerén keresztül működik.
-- A közösségi bejelentkezési gombokat az `AUTH_SOCIAL_PROVIDERS` konfiguráció szabályozza. Release Ready V1-ben az alapértelmezés üres, ezért csak email/jelszó belépés és regisztráció aktív; social gomb csak explicit, nem üres konfiguráció esetén jelenik meg.
-- A Google és Facebook gombok Supabase OAuth bejelentkezést indítanak. Csak olyan providert adj meg az `AUTH_SOCIAL_PROVIDERS` listában, amelyet az adott Supabase Auth környezetben már engedélyeztél; támogatott értékek: `google`, `facebook`, illetve Facebook aliasokként `fb` és `meta`. Visszakapcsoláshoz előbb engedélyezd a providert a Supabase Dashboardban, majd állítsd például `AUTH_SOCIAL_PROVIDERS=google,facebook` értékre. A Facebook appban Valid OAuth Redirect URI-ként a Supabase callback URL-t add meg: `https://<SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`, a Supabase Auth Redirect URL-ek közé pedig a publikus alkalmazás URL-jét vedd fel.
+- A közösségi bejelentkezési gombokat az `AUTH_SOCIAL_PROVIDERS` konfiguráció szabályozza. Az alapértelmezett érték `google,facebook`, ezért a Google és Facebook gombok külön konfiguráció nélkül is megjelennek; üres értéket csak akkor adj meg, ha a social bejelentkezést célzottan ki akarod kapcsolni.
+- A Google és Facebook gombok Supabase OAuth bejelentkezést indítanak. Csak olyan providert hagyj az `AUTH_SOCIAL_PROVIDERS` listában, amelyet az adott Supabase Auth környezetben már engedélyeztél; támogatott értékek: `google`, `facebook`, illetve Facebook aliasokként `fb` és `meta`. A Facebook appban Valid OAuth Redirect URI-ként a Supabase callback URL-t add meg: `https://<SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`, a Supabase Auth Redirect URL-ek közé pedig a publikus alkalmazás URL-jét vedd fel.
 - A frontend OAuth visszatérési URL-je az aktuális origin + pathname, query/hash nélkül, így ugyanarra a statikus oldalra érkezik vissza a felhasználó.
 
 ## Deployment pipeline

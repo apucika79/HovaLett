@@ -11,7 +11,7 @@ const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
 const SUPABASE_PUBLISHABLE_KEY = readBuildConfigValue("SUPABASE_PUBLISHABLE_KEY") || readBuildConfigValue("SUPABASE_ANON_KEY");
 const MONITORING_ENDPOINT = readBuildConfigValue("MONITORING_ENDPOINT");
 const ERROR_TRACKING_ENDPOINT = readBuildConfigValue("ERROR_TRACKING_ENDPOINT");
-const AUTH_SOCIAL_PROVIDERS = readBuildConfigValue("AUTH_SOCIAL_PROVIDERS");
+const AUTH_SOCIAL_PROVIDERS = readBuildConfigValue("AUTH_SOCIAL_PROVIDERS") || "google,facebook";
 
 
 function sendTelemetry(endpoint, eventType, payload) {
@@ -231,8 +231,8 @@ const messagePreferences = {
 };
 
 const availableSocialProviders = [
-  { id: "facebook", label: "Facebook", cta: "Folytatás Facebookkal" },
   { id: "google", label: "Google", cta: "Folytatás Google-lel" },
+  { id: "facebook", label: "Facebook", cta: "Folytatás Facebookkal" },
 ];
 
 
