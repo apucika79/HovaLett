@@ -231,18 +231,31 @@ const messagePreferences = {
 };
 
 const availableSocialProviders = [
-  { id: "facebook", label: "Facebook" },
-  { id: "google", label: "Google" },
+  { id: "facebook", label: "Facebook", cta: "Folytatás Facebookkal" },
+  { id: "google", label: "Google", cta: "Folytatás Google-lel" },
 ];
 
 const alwaysVisibleSocialProviderIds = new Set(["facebook"]);
 
-function getEnabledSocialProviders() {
-  const configuredProviderIds = new Set(
+function getConfiguredSocialProviderIds() {
+  const providerAliases = {
+    fb: "facebook",
+    meta: "facebook",
+  };
+
+  return new Set(
     AUTH_SOCIAL_PROVIDERS.split(",")
       .map((provider) => provider.trim().toLowerCase())
       .filter(Boolean)
+      .flatMap((provider) => {
+        if (provider === "all") return availableSocialProviders.map(({ id }) => id);
+        return [providerAliases[provider] || provider];
+      })
   );
+}
+
+function getEnabledSocialProviders() {
+  const configuredProviderIds = getConfiguredSocialProviderIds();
 
   return availableSocialProviders.filter(
     (provider) => configuredProviderIds.has(provider.id) || alwaysVisibleSocialProviderIds.has(provider.id)
@@ -2121,7 +2134,7 @@ function renderAuthModal(mode = "choice") {
 
   if (mode === "social-login") {
     const providerButtonsHtml = enabledSocialProviders
-      .map((provider) => `<button data-provider="${provider.id}" class="auth-provider-btn">${provider.label}</button>`)
+      .map((provider) => `<button data-provider="${provider.id}" class="auth-provider-btn auth-provider-btn--${provider.id}" aria-label="${provider.cta}">${provider.cta}</button>`)
       .join("");
 
     el.modalContent.innerHTML = `
@@ -2160,7 +2173,7 @@ function renderAuthModal(mode = "choice") {
         });
         button.disabled = false;
         if (error) {
-          alert(getAuthProviderErrorMessage(error, button.textContent));
+          alert(getAuthProviderErrorMessage(error, button.textContent.trim()));
         }
       });
     });

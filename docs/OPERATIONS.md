@@ -24,8 +24,8 @@
 
 ## Bejelentkezési szolgáltatók
 - Az email/jelszó alapú bejelentkezés továbbra is a Supabase Auth beépített email providerén keresztül működik.
-- A közösségi bejelentkezési gombokat az `AUTH_SOCIAL_PROVIDERS` konfiguráció szabályozza; a Facebook gomb felhasználói kérésre akkor is látható marad, ha a lista hiányos, hogy a bejelentkezési opció ne tűnjön el a felületről. A Supabase Auth környezetben engedélyezd a felsorolt szolgáltatókat (javasolt: `google,facebook`).
-- A Google és Facebook gombok Supabase OAuth bejelentkezést indítanak; a Supabase Dashboardban környezetenként engedélyezni kell a használni kívánt `Google` / `Facebook` providereket, valamint a publikus alkalmazás URL-jét fel kell venni Redirect URL-ként. Ha a Facebook nincs engedélyezve, a gomb látszik, de Supabase `Unsupported provider: provider is not enabled` hibát adhat, ezért a Facebook providert ténylegesen is kapcsold be az adott környezetben.
+- A közösségi bejelentkezési gombokat az `AUTH_SOCIAL_PROVIDERS` konfiguráció szabályozza; a deploy alapértelmezése `google,facebook`, a `fb` és `meta` aliasok pedig Facebookként értelmeződnek. A Facebook gomb felhasználói kérésre akkor is látható marad, ha a lista hiányos, hogy a bejelentkezési opció ne tűnjön el a felületről. A Supabase Auth környezetben engedélyezd a felsorolt szolgáltatókat (javasolt: `google,facebook`).
+- A Google és Facebook gombok Supabase OAuth bejelentkezést indítanak; a Supabase Dashboardban környezetenként engedélyezni kell a használni kívánt `Google` / `Facebook` providereket. A Facebook appban Valid OAuth Redirect URI-ként a Supabase callback URL-t add meg: `https://<SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`, a Supabase Auth Redirect URL-ek közé pedig a publikus alkalmazás URL-jét vedd fel. Ha a Facebook nincs engedélyezve, a gomb látszik, de Supabase `Unsupported provider: provider is not enabled` hibát adhat, ezért a Facebook providert ténylegesen is kapcsold be az adott környezetben.
 - A frontend OAuth visszatérési URL-je az aktuális origin + pathname, query/hash nélkül, így ugyanarra a statikus oldalra érkezik vissza a felhasználó.
 
 ## Deployment pipeline
