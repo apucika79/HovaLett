@@ -11,7 +11,7 @@ const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
 const SUPABASE_PUBLISHABLE_KEY = readBuildConfigValue("SUPABASE_PUBLISHABLE_KEY") || readBuildConfigValue("SUPABASE_ANON_KEY");
 const MONITORING_ENDPOINT = readBuildConfigValue("MONITORING_ENDPOINT");
 const ERROR_TRACKING_ENDPOINT = readBuildConfigValue("ERROR_TRACKING_ENDPOINT");
-const AUTH_SOCIAL_PROVIDERS = readBuildConfigValue("AUTH_SOCIAL_PROVIDERS") || "google";
+const AUTH_SOCIAL_PROVIDERS = readBuildConfigValue("AUTH_SOCIAL_PROVIDERS") || "google,facebook";
 
 
 function sendTelemetry(endpoint, eventType, payload) {
@@ -235,6 +235,8 @@ const availableSocialProviders = [
   { id: "google", label: "Google" },
 ];
 
+const alwaysVisibleSocialProviderIds = new Set(["facebook"]);
+
 function getEnabledSocialProviders() {
   const configuredProviderIds = new Set(
     AUTH_SOCIAL_PROVIDERS.split(",")
@@ -242,7 +244,9 @@ function getEnabledSocialProviders() {
       .filter(Boolean)
   );
 
-  return availableSocialProviders.filter((provider) => configuredProviderIds.has(provider.id));
+  return availableSocialProviders.filter(
+    (provider) => configuredProviderIds.has(provider.id) || alwaysVisibleSocialProviderIds.has(provider.id)
+  );
 }
 
 const enabledSocialProviders = getEnabledSocialProviders();
