@@ -16,6 +16,7 @@
    - `SUPABASE_PUBLISHABLE_KEY`
    - `MONITORING_ENDPOINT`
    - `ERROR_TRACKING_ENDPOINT`
+4. A frontend Supabase kliens kizárólag a `SUPABASE_PUBLISHABLE_KEY` értéket olvassa; `SUPABASE_ANON_KEY` secretet ne hozz létre.
 
 ## Deployment pipeline
 - A workflow a branch alapján választ environmentet:
