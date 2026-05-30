@@ -16,14 +16,14 @@
    - `SUPABASE_PUBLISHABLE_KEY`
    - `MONITORING_ENDPOINT`
    - `ERROR_TRACKING_ENDPOINT`
-4. A frontend Supabase kliens kizárólag a `SUPABASE_PUBLISHABLE_KEY` értéket olvassa; `SUPABASE_ANON_KEY` secretet ne hozz létre.
+4. A frontend Supabase kliens elsődlegesen a `SUPABASE_PUBLISHABLE_KEY` értéket olvassa; a régi `SUPABASE_ANON_KEY` név csak visszafelé kompatibilis fallback.
 
 ## Deployment pipeline
 - A workflow a branch alapján választ environmentet:
   - `develop` → `dev`
   - `staging` → `stage`
   - `main` → `prod`
-- Build lépésben placeholder csere történik `index.html` és `app-config.js` fájlokban.
+- Build lépésben placeholder csere történik `index.html` és `app-config.js` fájlokban. Ha a live/static preview build nélkül szolgálja ki a fájlokat, az `app-config.js` a publikus dev Supabase konfigurációra esik vissza, hogy a térképes lista továbbra is működjön.
 - Artifactként egy deployolható `dist/` csomag készül.
 
 ## Monitoring + Error tracking
