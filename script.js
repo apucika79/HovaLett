@@ -8,7 +8,7 @@ function readBuildConfigValue(key) {
 
 const APP_ENV = readBuildConfigValue("APP_ENV") || "dev";
 const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
-const SUPABASE_ANON_KEY = readBuildConfigValue("SUPABASE_ANON_KEY");
+const SUPABASE_PUBLISHABLE_KEY = readBuildConfigValue("SUPABASE_PUBLISHABLE_KEY");
 const MONITORING_ENDPOINT = readBuildConfigValue("MONITORING_ENDPOINT");
 const ERROR_TRACKING_ENDPOINT = readBuildConfigValue("ERROR_TRACKING_ENDPOINT");
 
@@ -188,8 +188,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: MAP_MAX_ZOOM,
 }).addTo(map);
 
-const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_ANON_KEY)
-  ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+const supabaseClient = isSupabaseConfigUsable(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+  ? window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         storage: {
           getItem(key) {
