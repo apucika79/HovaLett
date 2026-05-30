@@ -159,7 +159,15 @@ security definer
 set search_path = public
 as $$
 begin
-  if TG_OP = 'UPDATE'
+  if TG_OP = 'INSERT' then
+    if new.status is null then
+      new.status := 'review';
+    end if;
+
+    if new.status <> 'review' and not public.is_admin() then
+      raise exception 'Sima felhasználó csak review státuszú bejelentést hozhat létre.';
+    end if;
+  elsif TG_OP = 'UPDATE'
     and new.status is distinct from old.status
     and not public.is_admin() then
     raise exception 'Csak admin módosíthatja a bejelentés státuszát.';
@@ -171,7 +179,7 @@ $$;
 
 drop trigger if exists trg_enforce_bejelentesek_status_rules on public.bejelentesek;
 create trigger trg_enforce_bejelentesek_status_rules
-before update on public.bejelentesek
+before insert or update on public.bejelentesek
 for each row
 execute function public.enforce_bejelentesek_status_rules();
 
