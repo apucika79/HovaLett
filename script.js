@@ -1823,7 +1823,7 @@ function showHome() {
   refreshMapLayout();
 }
 
-function showAdminPanel() {
+async function showAdminPanel() {
   if (!state.user) {
     renderAuthModal("social-login");
     el.modal.classList.remove("hidden");
@@ -1842,6 +1842,10 @@ function showAdminPanel() {
   el.adminView?.classList.remove("hidden");
   el.bejelentesBox.classList.add("hidden");
   updateMenuViewState();
+  el.adminReportRows.innerHTML = "<tr><td colspan='7'>Bejelentések betöltése...</td></tr>";
+  if (state.supabaseOnline) {
+    await loadReports();
+  }
   renderAdminDashboard();
 }
 
@@ -2138,17 +2142,24 @@ function renderAuthModal(mode = "choice") {
       ? supabaseClient.auth.signInWithPassword({ email, password })
       : supabaseClient.auth.signUp({ email, password });
 
-    const { error } = await action;
+    const { data: authResult, error } = await action;
     if (error) return alert(error.message);
 
-    if (mode === "register") {
-      alert("Regisztráció kész. Ha email megerősítés kell, igazold vissza.");
-      return;
+    await hydrateAuth();
+    if (state.supabaseOnline) {
+      await loadReports();
     }
 
-    await hydrateAuth();
     el.modal.classList.add("hidden");
     el.modal.classList.remove("show");
+
+    if (mode === "register") {
+      if (authResult?.session || state.user) {
+        alert("Regisztráció kész, bejelentkeztél.");
+      } else {
+        alert("Regisztráció kész. Ha email megerősítés kell, igazold vissza, majd jelentkezz be.");
+      }
+    }
   };
 }
 
@@ -2188,6 +2199,7 @@ async function hydrateAuth() {
     el.homeBtn.classList.remove("hidden");
     el.adminBtn?.classList.toggle("hidden", !state.isAdmin);
   } else {
+    state.reports = state.reports.filter((report) => report.status === "aktiv");
     el.loggedUser.classList.add("hidden");
     el.loginBtn.classList.remove("hidden");
     el.logoutBtn.classList.add("hidden");
@@ -2464,6 +2476,9 @@ function bindMenu() {
     localStorage.removeItem(authPreferences.stayLoggedIn);
     state.user = null;
     await hydrateAuth();
+    if (state.supabaseOnline) {
+      await loadReports();
+    }
   });
 
   el.homeBtn.addEventListener("click", showHome);
