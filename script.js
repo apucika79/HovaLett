@@ -11,7 +11,7 @@ const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
 const SUPABASE_PUBLISHABLE_KEY = readBuildConfigValue("SUPABASE_PUBLISHABLE_KEY") || readBuildConfigValue("SUPABASE_ANON_KEY");
 const MONITORING_ENDPOINT = readBuildConfigValue("MONITORING_ENDPOINT");
 const ERROR_TRACKING_ENDPOINT = readBuildConfigValue("ERROR_TRACKING_ENDPOINT");
-const AUTH_SOCIAL_PROVIDERS = readBuildConfigValue("AUTH_SOCIAL_PROVIDERS") || "google,facebook";
+const AUTH_SOCIAL_PROVIDERS = readBuildConfigValue("AUTH_SOCIAL_PROVIDERS");
 
 
 function sendTelemetry(endpoint, eventType, payload) {
@@ -235,7 +235,6 @@ const availableSocialProviders = [
   { id: "google", label: "Google", cta: "Folytatás Google-lel" },
 ];
 
-const alwaysVisibleSocialProviderIds = new Set(["facebook"]);
 
 function getConfiguredSocialProviderIds() {
   const providerAliases = {
@@ -257,12 +256,12 @@ function getConfiguredSocialProviderIds() {
 function getEnabledSocialProviders() {
   const configuredProviderIds = getConfiguredSocialProviderIds();
 
-  return availableSocialProviders.filter(
-    (provider) => configuredProviderIds.has(provider.id) || alwaysVisibleSocialProviderIds.has(provider.id)
-  );
+  return availableSocialProviders.filter((provider) => configuredProviderIds.has(provider.id));
 }
 
 const enabledSocialProviders = getEnabledSocialProviders();
+const hasEnabledSocialProviders = enabledSocialProviders.length > 0;
+const defaultLoginMode = hasEnabledSocialProviders ? "social-login" : "login";
 
 const socialProviderOptions = {
   facebook: { scopes: "email,public_profile" },
@@ -2115,6 +2114,11 @@ async function saveReport() {
 }
 
 function renderAuthModal(mode = "choice") {
+  if (mode === "social-login" && !hasEnabledSocialProviders) {
+    renderAuthModal("login");
+    return;
+  }
+
   if (mode === "choice") {
     el.modalContent.innerHTML = `
       <button class="modal-close-btn" data-auth-close="true" aria-label="Bezárás">✕</button>
@@ -2127,7 +2131,7 @@ function renderAuthModal(mode = "choice") {
       el.modal.classList.add("hidden");
       el.modal.classList.remove("show");
     };
-    document.getElementById("loginBtn").onclick = () => renderAuthModal("social-login");
+    document.getElementById("loginBtn").onclick = () => renderAuthModal(defaultLoginMode);
     document.getElementById("registerBtn").onclick = () => renderAuthModal("register");
     return;
   }
@@ -2211,7 +2215,7 @@ function renderAuthModal(mode = "choice") {
     document.getElementById("stayLoggedIn").checked = stayLoggedIn;
   }
 
-  document.getElementById("authBackBtn").onclick = () => renderAuthModal(mode === "login" ? "social-login" : "choice");
+  document.getElementById("authBackBtn").onclick = () => renderAuthModal(mode === "login" && hasEnabledSocialProviders ? "social-login" : "choice");
   document.getElementById("authSubmitBtn").onclick = async () => {
     if (!supabaseClient) return alert("Supabase nincs beállítva.");
     const email = document.getElementById("authEmail").value.trim();
