@@ -8,7 +8,7 @@ function readBuildConfigValue(key) {
 
 const APP_ENV = readBuildConfigValue("APP_ENV") || "dev";
 const SUPABASE_URL = readBuildConfigValue("SUPABASE_URL");
-const SUPABASE_PUBLISHABLE_KEY = readBuildConfigValue("SUPABASE_PUBLISHABLE_KEY");
+const SUPABASE_PUBLISHABLE_KEY = readBuildConfigValue("SUPABASE_PUBLISHABLE_KEY") || readBuildConfigValue("SUPABASE_ANON_KEY");
 const MONITORING_ENDPOINT = readBuildConfigValue("MONITORING_ENDPOINT");
 const ERROR_TRACKING_ENDPOINT = readBuildConfigValue("ERROR_TRACKING_ENDPOINT");
 
@@ -98,6 +98,7 @@ const state = {
   reportDateTime: null,
   currentReportForMessage: null,
   supabaseOnline: false,
+  supabaseOfflineMessage: "",
   viewMode: "home",
   imageViewer: {
     urls: [],
@@ -1554,14 +1555,21 @@ function renderMapMarkers() {
   syncFocusedMarkerState();
 }
 
+function setSupabaseOfflineMessage(message) {
+  state.supabaseOfflineMessage = message;
+  setInfo(message);
+}
+
 async function checkSupabaseConnection() {
+  state.supabaseOfflineMessage = "";
+
   if (!supabaseClient) {
     const hasSupabaseRuntime = Boolean(window.supabase?.createClient);
     if (!hasSupabaseRuntime) {
-      setInfo("Supabase kliens nem tölthető be (CDN script hiba vagy blokkolás).");
+      setSupabaseOfflineMessage("Supabase kliens nem tölthető be (CDN script hiba vagy blokkolás). Cache-elt listát használunk.");
       return false;
     }
-    setInfo("Supabase kliens nem inicializálható (URL vagy kulcs hibás/hiányzik).");
+    setSupabaseOfflineMessage("Supabase kliens nem inicializálható (URL vagy kulcs hibás/hiányzik). Cache-elt listát használunk.");
     return false;
   }
 
@@ -1574,11 +1582,11 @@ async function checkSupabaseConnection() {
   if (error) {
     const msg = String(error.message || "").toLowerCase();
     if (msg.includes("relation") && msg.includes("does not exist")) {
-      setInfo("Supabase hiba: hiányzik a bejelentesek tábla. Futtasd le a supabase_schema.sql fájlt.");
+      setSupabaseOfflineMessage("Supabase hiba: hiányzik a bejelentesek tábla. Futtasd le a supabase_schema.sql fájlt. Cache-elt listát használunk.");
     } else if (msg.includes("permission denied") || msg.includes("row-level security")) {
-      setInfo("Supabase hiba: RLS policy hiányzik vagy hibás. Ellenőrizd a select policy-ket.");
+      setSupabaseOfflineMessage("Supabase hiba: RLS policy hiányzik vagy hibás. Ellenőrizd a select policy-ket. Cache-elt listát használunk.");
     } else {
-      setInfo(`Supabase hiba: ${error.message}`);
+      setSupabaseOfflineMessage(`Supabase hiba: ${error.message}. Cache-elt listát használunk.`);
     }
     console.error("Supabase kapcsolat hiba:", error);
     return false;
@@ -1592,7 +1600,7 @@ async function loadReports(options = {}) {
   if (!state.supabaseOnline) {
     state.reports = loadCachedReportList();
     state.pagination.reportsHasMore = false;
-    setInfo("Supabase kapcsolat hiba: cache-elt listát használunk. Ellenőrizd az RLS policy-ket és a táblákat.");
+    setInfo(state.supabaseOfflineMessage || "Supabase kapcsolat hiba: cache-elt listát használunk. Ellenőrizd az RLS policy-ket és a táblákat.");
     updateVisibleItems();
     renderMapMarkers();
     updateLoadMoreButtons();
