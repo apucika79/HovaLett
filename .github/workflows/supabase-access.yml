@@ -68,6 +68,9 @@ jobs:
       - name: Rebuild database from versioned migrations
         run: supabase db reset --local
 
+      - name: Run database RLS tests
+        run: supabase test db
+
       - name: Lint migrated database
         run: supabase db lint --local --level warning
 
