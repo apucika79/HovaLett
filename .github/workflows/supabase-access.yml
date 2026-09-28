@@ -11,6 +11,8 @@ on:
       - "docs/OPERATIONS.md"
       - "config/environments.example.json"
       - "supabase_schema.sql"
+      - "supabase/**"
+      - "scripts/validate-supabase-migrations.sh"
   push:
     branches:
       - main
@@ -23,6 +25,8 @@ on:
       - "docs/OPERATIONS.md"
       - "config/environments.example.json"
       - "supabase_schema.sql"
+      - "supabase/**"
+      - "scripts/validate-supabase-migrations.sh"
   workflow_dispatch:
 
 permissions:
@@ -40,6 +44,32 @@ jobs:
         run: |
           bash -n scripts/prepare-supabase-env.sh
           bash -n scripts/configure-supabase-auth-providers.sh
+          bash -n scripts/validate-supabase-migrations.sh
+
+      - name: Reject destructive or malformed migration files
+        run: scripts/validate-supabase-migrations.sh
+
+  migration-validation:
+    name: Apply and lint migrations locally
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      - name: Start local Supabase services
+        run: supabase start
+
+      - name: Rebuild database from versioned migrations
+        run: supabase db reset --local
+
+      - name: Lint migrated database
+        run: supabase db lint --local --level warning
 
   supabase-access:
     name: Verify Supabase project access
