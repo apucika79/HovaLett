@@ -170,7 +170,9 @@ const redDefaultIcon = createDefaultMarkerIcon("#c62828");
 
 const MAX_DESCRIPTION_LENGTH = 150;
 const MIN_MARKER_DISTANCE_METERS = 12;
-const MAX_UPLOAD_IMAGES = 3;
+const imagePolicy = window.HovaLettImagePolicy;
+if (!imagePolicy) throw new Error("A képvalidációs modul nem tölthető be.");
+const MAX_UPLOAD_IMAGES = imagePolicy.MAX_IMAGES;
 const REPORT_PAGE_SIZE = 60;
 const PROFILE_REPORT_PAGE_SIZE = 20;
 const MESSAGE_PAGE_SIZE = 20;
@@ -1048,9 +1050,18 @@ async function handleSaveReportChanges() {
   const newTitle = el.manageReportTitleInput.value.trim();
   const newDesc = el.manageReportDescInput.value.trim().slice(0, MAX_DESCRIPTION_LENGTH);
 
+  const originalUrls = getImageUrls(selectedOwnReport.image_url);
+  const removedUrls = originalUrls.filter((url) => !state.manageImageUrls.includes(url));
+  try {
+    await removeStoredImages(removedUrls);
+  } catch (err) {
+    alert(err.message || "A törölt képek Storage-ból eltávolítása sikertelen.");
+    return;
+  }
+
   let uploadedUrls = [];
   try {
-    uploadedUrls = await uploadImagesIfAny(state.managePendingFiles);
+    uploadedUrls = await uploadImagesIfAny(state.managePendingFiles, state.manageImageUrls.length);
   } catch (err) {
     alert(err.message || "Új képek feltöltése sikertelen.");
     return;
@@ -1070,11 +1081,20 @@ async function handleSaveReportChanges() {
     .select("id");
 
   if (error) {
+    await removeStoredImages(uploadedUrls, { bestEffort: true });
+    // A már törölt objektumokra mutató URL-eket akkor is eltávolítjuk, ha a
+    // teljes szerkesztés mentése meghiúsult.
+    if (removedUrls.length) {
+      await supabaseClient.from("bejelentesek").update({
+        image_url: state.manageImageUrls.length ? JSON.stringify(state.manageImageUrls) : null,
+      }).eq("id", selectedOwnReport.id).eq("user_id", state.user.id);
+    }
     alert(`Módosítás sikertelen: ${error.message}`);
     return;
   }
 
   if (!Array.isArray(data) || data.length === 0) {
+    await removeStoredImages(uploadedUrls, { bestEffort: true });
     alert("Módosítás nem történt (nincs jogosultság, vagy a bejelentés már nem létezik).");
     return;
   }
@@ -1090,6 +1110,14 @@ async function handleDeleteReport() {
   const ok = window.confirm("Biztosan törlöd ezt a bejelentést?");
   if (!ok) return;
 
+  const reportImages = getImageUrls(selectedOwnReport.image_url);
+  try {
+    await removeStoredImages(reportImages);
+  } catch (error) {
+    alert(error.message || "A bejelentés képeinek törlése sikertelen.");
+    return;
+  }
+
   const { data, error } = await supabaseClient
     .from("bejelentesek")
     .delete()
@@ -1098,11 +1126,16 @@ async function handleDeleteReport() {
     .select("id");
 
   if (error) {
+    // A Storage törlés nem visszafordítható; így legalább nem marad hibás URL.
+    await supabaseClient.from("bejelentesek").update({ image_url: null })
+      .eq("id", selectedOwnReport.id).eq("user_id", state.user.id);
     alert(`Törlés sikertelen: ${error.message}`);
     return;
   }
 
   if (!Array.isArray(data) || data.length === 0) {
+    await supabaseClient.from("bejelentesek").update({ image_url: null })
+      .eq("id", selectedOwnReport.id).eq("user_id", state.user.id);
     alert("Törlés nem történt (nincs jogosultság, vagy a bejelentés már törölve lett).");
     return;
   }
@@ -1950,10 +1983,36 @@ async function showMyReports() {
   refreshMapLayout();
 }
 
+function storagePathFromPublicUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const marker = "/storage/v1/object/public/report-images/";
+    const markerIndex = parsed.pathname.indexOf(marker);
+    if (markerIndex < 0) return null;
+    const path = decodeURIComponent(parsed.pathname.slice(markerIndex + marker.length));
+    return path.startsWith(`${state.user.id}/`) ? path : null;
+  } catch {
+    return null;
+  }
+}
+
+async function removeStoredImages(urls, { bestEffort = false } = {}) {
+  const paths = Array.from(new Set(Array.from(urls || []).map(storagePathFromPublicUrl).filter(Boolean)));
+  if (!paths.length) return;
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { error } = await supabaseClient.storage.from("report-images").remove(paths);
+    if (!error) return;
+    lastError = error;
+  }
+  if (!bestEffort) throw new Error(`Kép törlési hiba: ${lastError?.message || "ismeretlen hiba"}`);
+  console.error("Storage takarítás sikertelen három kísérlet után:", lastError);
+}
+
 async function uploadImageIfAny(file) {
   if (!file || !state.supabaseOnline) return null;
-  const rawExt = file.name.split(".").pop() || "jpg";
-  const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  await imagePolicy.validateImageFile(file);
+  const ext = imagePolicy.extensionOf(file.name);
   const uniqueName = `${Date.now()}-${window.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}`;
   const path = `${state.user.id}/${uniqueName}.${ext}`;
   const { error } = await supabaseClient.storage.from("report-images").upload(path, file, { upsert: false });
@@ -2029,13 +2088,19 @@ function handleManageImageSelection() {
   updateManageImageHelp();
 }
 
-async function uploadImagesIfAny(files) {
-  const selectedFiles = Array.from(files || []).slice(0, MAX_UPLOAD_IMAGES);
+async function uploadImagesIfAny(files, existingCount = 0) {
+  const selectedFiles = Array.from(files || []);
+  imagePolicy.assertImageCount(selectedFiles, existingCount);
   const uploadedUrls = [];
 
-  for (const file of selectedFiles) {
-    const url = await uploadImageIfAny(file);
-    if (url) uploadedUrls.push(url);
+  try {
+    for (const file of selectedFiles) {
+      const url = await uploadImageIfAny(file);
+      if (url) uploadedUrls.push(url);
+    }
+  } catch (error) {
+    await removeStoredImages(uploadedUrls, { bestEffort: true });
+    throw error;
   }
 
   return uploadedUrls;
@@ -2102,6 +2167,7 @@ async function saveReport() {
   try {
     await createReport(payloadBase);
   } catch (err) {
+    await removeStoredImages(imageUrls, { bestEffort: true });
     alert(err.message || "Mentési hiba.");
     return;
   }

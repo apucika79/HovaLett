@@ -1,5 +1,53 @@
 # HovaLett üzemeltetési alapok
 
+## Bejelentésképek és Storage életciklus
+
+### Publikus bucket – tudatos kompatibilitási döntés
+
+A `report-images` bucket **publikus marad**. A már tárolt
+`bejelentesek.image_url` értékek publikus URL-ek, és a térkép anonim látogatói
+is megjelenítik az aktív bejelentések képeit. Signed URL-re váltás lejáró
+linkeket, külön kiszolgáló réteget és a régi URL-ek adatmigrációját igényelne.
+Az `image_url` formátuma ezért változatlan (egy URL vagy JSON URL-lista), nincs
+adatvesztő `report_images` migráció.
+
+**Adatvédelmi következmény:** aki megszerzi egy objektum publikus URL-jét,
+bejelentkezés nélkül elérheti a képet. A UI ezért figyelmeztet, hogy személyes
+adatot, érzékeny arcképet és okmányfotót tilos feltölteni. Ha ez később nem
+elfogadható, külön migrációban priváttá kell tenni a bucketet, objektumútvonalat
+kell tárolni URL helyett, és rövid életű signed URL-eket kell kiadni.
+
+### Kötelező korlátok és védelem
+
+- legfeljebb **3 kép bejelentésenként**;
+- legfeljebb **5 MiB képenként**;
+- MIME: `image/jpeg`, `image/png`, `image/webp`;
+- kiterjesztés: `.jpg`, `.jpeg`, `.png`, `.webp`.
+
+A kliens külön ellenőrzi a darabszámot, méretet, MIME-típust, kiterjesztést, a
+fájl mágikus bájtjait és – ahol elérhető – a böngésző képdekóderével a teljes
+fájlt. A kiterjesztés önmagában sosem elegendő. A bucket méret- és MIME-korlátja
+szerveroldali második védelmi réteg; a Storage RLS a MIME-ot és kiterjesztést is
+vizsgálja. A `20260928020000_harden_report_image_storage.sql` csak a
+`report-images/<auth.uid()>/...` prefixen enged insert/update/delete műveletet.
+
+### Hibakezelés és takarítás
+
+- Részleges feltöltési vagy adatbázis-insert hiba esetén az addig feltöltött
+  objektumokat a kliens eltávolítja.
+- Szerkesztésnél a régi objektumok törlése megelőzi az URL-lista mentését. DB
+  hiba esetén az új feltöltések törlődnek, a rekordból pedig kikerülnek a már
+  törölt képek URL-jei.
+- Bejelentés törlése előtt a saját Storage-objektumok törlődnek. Ha utána a DB
+  törlés hibázik, a megmaradt rekord `image_url` mezője nullázódik.
+- A Storage takarítás háromszor próbálkozik. A böngésző és az objektumtár között
+  teljes elosztott tranzakció nem garantálható tartós kliens-/hálózati kieséskor;
+  ezért ajánlott időszakos orphan audit a bucket és az `image_url` értékek
+  összevetésével.
+
+A pgTAP teszt a saját/idegen prefix feltöltési és törlési szabályait és a nem
+kép MIME tiltását, a Node teszt a háromképes limitet és fájlazonosítást vizsgálja.
+
 ## Verziózott adatbázis-migrációk
 
 A séma kanonikus forrása a `supabase/migrations` könyvtár. A
