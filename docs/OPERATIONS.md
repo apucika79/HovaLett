@@ -183,6 +183,23 @@ rekordokra és a `report-images/<user-id>/...` útvonalra vonatkozó műveleteke
   - bejelentések: max 5 / óra és 20 / nap / user
   - üzenetek: max 60 / óra / user
   - abuse reportok: max 20 / óra / user
+
+### Üzenetküldési szabályok
+
+- Üzenetet kizárólag bejelentkezett felhasználó küldhet, saját nevében, a
+  hivatkozott bejelentés tulajdonosának; saját magának nem küldhet.
+- **Első üzenet csak `aktiv` bejelentéshez küldhető.** Ha ugyanaz a küldő az
+  adott bejelentés tulajdonosának már küldött üzenetet, a megkezdett kapcsolat
+  `lezart` (vagy más nem aktív) státusz után is folytatható. Ez nem nyitja meg a
+  beszélgetést más felhasználóknak.
+- A `body` a whitespace levágása után nem lehet üres, maximális hossza **2000
+  karakter**.
+- Az elküldött üzenet teljesen változtathatatlan: nincs update policy vagy
+  `authenticated` UPDATE jogosultság. Így a `body`, `from_user_id`,
+  `to_user_id`, `report_id` és `created_at` sem írható át; javítást új üzenetben
+  kell elküldeni, ezért nincs félrevezető, auditnyom nélküli szerkesztés.
+- Az automatizált RLS tesztek a `supabase/tests/database` könyvtárban vannak;
+  helyi Supabase indítása után a `supabase test db` futtatja őket.
 - Bejelentés részletező modalban már valódi `abuse_reports` rekord jön létre (nem csak placeholder alert).
 - Frontend oldalon extra bot-fék:
   - kötelező “Nem vagyok robot” checkbox mentésnél

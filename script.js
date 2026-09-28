@@ -2312,7 +2312,9 @@ function openFirstMessageModal(report, isReply = false) {
 async function sendMessageFromModal() {
   if (!supabaseClient) return;
   const body = el.messageBody.value.trim();
-  if (!body || !state.currentReportForMessage || !state.user) return;
+  if (!body) return alert("Az üzenet szövege nem lehet üres.");
+  if (body.length > 2000) return alert("Az üzenet legfeljebb 2000 karakter lehet.");
+  if (!state.currentReportForMessage || !state.user) return alert("Az üzenetküldéshez be kell jelentkezni.");
   const messageCooldownRemaining = getCooldownRemainingMs(MESSAGE_COOLDOWN_KEY, CLIENT_MESSAGE_COOLDOWN_MS);
   if (messageCooldownRemaining > 0) {
     alert(`Túl gyors üzenetküldés. Várj még ${formatRemainingSeconds(messageCooldownRemaining)} másodpercet.`);
@@ -2326,7 +2328,20 @@ async function sendMessageFromModal() {
     report_id: Number(state.currentReportForMessage.id),
     body,
   }]);
-  if (error) return alert("Üzenet mentési hiba.");
+  if (error) {
+    const policyMessages = [
+      "Az üzenetküldéshez be kell jelentkezni.",
+      "A feladó csak a bejelentkezett felhasználó lehet.",
+      "A címzettnek a bejelentés tulajdonosának kell lennie.",
+      "Saját magadnak nem küldhetsz üzenetet.",
+      "A hivatkozott bejelentés nem található.",
+      "Első üzenet csak aktív bejelentéshez küldhető.",
+      "Az üzenet szövege nem lehet üres.",
+      "Az üzenet legfeljebb 2000 karakter lehet.",
+    ];
+    const exactMessage = policyMessages.find((message) => String(error.message || "").includes(message));
+    return alert(exactMessage || "Az üzenet nem küldhető el: az adatbázis biztonsági szabálya elutasította.");
+  }
 
   setCooldownNow(MESSAGE_COOLDOWN_KEY);
   el.messageModal.classList.add("hidden");
