@@ -1,8 +1,10 @@
--- LEGACY BOOTSTRAP FILE - do not use for new installations.
+-- HovaLett baseline schema.
 --
--- Kept for backwards compatibility with existing operational runbooks. The
--- versioned source of truth is supabase/migrations/20260928000000_baseline.sql;
--- use the Supabase CLI workflow documented in docs/OPERATIONS.md.
+-- This migration is intentionally data-preserving and safe to run against the legacy
+-- schema: it never drops a table or deletes/truncates application data. The
+-- transaction also prevents a partially applied baseline.
+begin;
+
 -- HovaLett schema + RLS
 create extension if not exists "pgcrypto";
 
@@ -435,3 +437,5 @@ create policy "storage_auth_upload_report_images"
     bucket_id = 'report-images'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+commit;

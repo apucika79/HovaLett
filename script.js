@@ -1647,7 +1647,7 @@ async function checkSupabaseConnection() {
   if (error) {
     const msg = String(error.message || "").toLowerCase();
     if (msg.includes("relation") && msg.includes("does not exist")) {
-      setSupabaseOfflineMessage("Supabase hiba: hiányzik a bejelentesek tábla. Futtasd le a supabase_schema.sql fájlt. Cache-elt listát használunk.");
+      setSupabaseOfflineMessage("Supabase hiba: hiányzik a bejelentesek tábla. Alkalmazd a Supabase migrációkat. Cache-elt listát használunk.");
     } else if (msg.includes("permission denied") || msg.includes("row-level security")) {
       setSupabaseOfflineMessage("Supabase hiba: RLS policy hiányzik vagy hibás. Ellenőrizd a select policy-ket. Cache-elt listát használunk.");
     } else {

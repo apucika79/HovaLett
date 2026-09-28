@@ -1,5 +1,119 @@
 # HovaLett üzemeltetési alapok
 
+## Verziózott adatbázis-migrációk
+
+A séma kanonikus forrása a `supabase/migrations` könyvtár. A
+`20260928000000_baseline.sql` a jelenlegi adatmodellt egyetlen, tranzakciós
+baseline-ként rögzíti: a négy alkalmazástáblát, indexeket, függvényeket,
+triggereket, RLS policy-kat, valamint a publikus `report-images` bucketet és
+annak Storage policy-jait. A migráció nem tartalmaz `DROP TABLE`, `TRUNCATE`
+vagy `DELETE FROM` utasítást. A `supabase_schema.sql` csak legacy/bootstrap
+kompatibilitás miatt maradt a repóban; új telepítésnél nem szabad külön
+lefuttatni.
+
+### Teljesen új projekt indítása
+
+1. Telepítsd a [Supabase CLI-t](https://supabase.com/docs/guides/local-development/cli/getting-started), majd a repó gyökerében jelentkezz be.
+2. Hozd létre a projektet a Dashboardon, és jegyezd fel a projekt refet.
+3. Kapcsold a repót a projekthez, majd alkalmazd a verziózott migrációkat:
+
+   ```bash
+   supabase login
+   supabase link --project-ref "$SUPABASE_PROJECT_REF"
+   supabase db push
+   ```
+
+4. A migráció után állítsd be az Auth redirect URL-eket és a szükséges OAuth
+   providereket az alább dokumentált környezeti konfigurációval. A migráció
+   kizárólag az adatbázis- és Storage-sémát kezeli, titkokat nem.
+
+Helyi, teljesen tiszta próbához Docker mellett futtasd:
+
+```bash
+supabase start
+supabase db reset --local
+supabase db lint --local --level warning
+```
+
+A `db reset` **csak a lokális fejlesztői adatbázison** használható; linkelt vagy
+éles projekt adatainak baseline-olására tilos.
+
+### Már létező projekt átállítása
+
+Az átállás előtt készíts Dashboard backupot, illetve exportáld a távoli sémát.
+A jelenlegi környezet ebben a repóban nem tartalmaz Supabase tokent vagy
+adatbázis-jelszót, ezért az élő állapot automatikus lekérdezése helyett az alábbi
+auditot a projektgazdának kell elvégeznie:
+
+```bash
+supabase link --project-ref "$SUPABASE_PROJECT_REF"
+supabase db dump --linked --schema public,storage --file /tmp/hovalett-before.sql
+supabase migration list
+supabase db push --dry-run
+```
+
+- Ha az élő projektet korábban a `supabase_schema.sql` aktuális változatával
+  hozták létre, és a dump alapján a táblák, constraint-ek, függvények,
+  triggerek, policy-k és bucket megegyeznek a baseline-nal, **ne futtasd újra a
+  DDL-t**. Jelöld a baseline verziót már alkalmazottnak, majd ellenőrizd a
+  listát:
+
+  ```bash
+  supabase migration repair --linked --status applied 20260928000000
+  supabase migration list
+  ```
+
+- Ha a séma a legacy fájl egy korábbi, de kompatibilis állapota, először nézd át
+  a `supabase db push --dry-run` kimenetét. A baseline idempotens
+  `CREATE ... IF NOT EXISTS`, `CREATE OR REPLACE`, illetve policy/trigger
+  újralétrehozást használ, és nem töröl alkalmazásadatot; az ellenőrzött
+  baseline a `supabase db push` paranccsal alkalmazható. Ismeretlen drift vagy
+  eltérő oszloptípus esetén ne kényszerítsd a baseline-t: készíts külön,
+  előremenő, adatmegőrző javítómigrációt.
+
+A `migration repair` csak a migrációs előzményt módosítja, magát a sémát nem;
+ezért kizárólag bizonyított sémaegyezésnél használd.
+
+### Ellenőrzés
+
+Repószinten és CI-ben az alábbi ellenőrzések futnak:
+
+```bash
+bash -n scripts/validate-supabase-migrations.sh
+scripts/validate-supabase-migrations.sh
+supabase start
+supabase db reset --local
+supabase db lint --local --level warning
+```
+
+Az első kettő ellenőrzi a shell szintaxist, a migrációk szabványos időbélyeges
+nevét, valamint tiltja az adatvesztő `DROP TABLE`, `TRUNCATE` és `DELETE FROM`
+utasításokat. A lokális reset egy üres Supabase adatbázisra ténylegesen
+alkalmazza az összes migrációt, a lint pedig a létrejött adatbázist ellenőrzi.
+Linkelt projekt esetén a `supabase migration list` helyi/távoli verzióinak
+egyezniük kell. Végül egy jogosultság nélküli klienssel ellenőrizd, hogy csak az
+`aktiv` bejelentések olvashatók, bejelentkezett tesztuserrel pedig a saját
+rekordokra és a `report-images/<user-id>/...` útvonalra vonatkozó műveleteket.
+
+### Visszaállítás hiba esetén
+
+- A baseline `BEGIN`/`COMMIT` tranzakcióban fut, ezért SQL-hiba esetén a DDL
+  automatikusan teljes egészében visszagördül, és az adatok megmaradnak.
+- Sikertelen futás után javítsd a hibát egy új, nagyobb időbélyegű migrációban,
+  majd futtasd újra a `supabase db push` parancsot. Már publikált migrációt ne
+  írd át, és éles táblát ne dobj el.
+- Ha csak tévesen lett „applied” állapotúra javítva a baseline, a ledger
+  visszaállítható anélkül, hogy a séma vagy az adatok változnának:
+
+  ```bash
+  supabase migration repair --linked --status reverted 20260928000000
+  ```
+
+- Sikeresen commitolt, de hibás séma esetén előremenő korrekciós migráció az
+  elsődleges helyreállítás. Adatsérülés gyanújakor állítsd le az írásokat, és a
+  futtatás előtt készített Supabase backupból állíts helyre; destruktív kézi
+  „rollback” helyett előbb klónozott/staging projekten próbáld ki a helyreállítást.
+
 ## Külső dependency stratégia
 - Leaflet betöltése SRI ellenőrzéssel történik (unpkg → jsDelivr fallback).
 - Supabase scriptnél két CDN fallback útvonal van (jsDelivr → unpkg).
